@@ -16,9 +16,6 @@ const geistMono = Geist_Mono({
 export const metadata: Metadata = {
   title: "نظام حجز الواكرات",
   description: "نظام إلكتروني متكامل لحجز وإدارة الواكرات",
-  icons: {
-    icon: "/logo.svg",
-  },
 };
 
 export default function RootLayout({

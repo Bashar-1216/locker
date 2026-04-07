@@ -90,7 +90,7 @@ export async function POST() {
 
     // Create sample bookings
     const today = new Date()
-    const bookings = []
+    const bookings: any[] = []
     for (let i = 0; i < 10; i++) {
       const randomSeat = allSeats[Math.floor(Math.random() * allSeats.length)]
       const randomUser = createdUsers[Math.floor(Math.random() * createdUsers.length)]
