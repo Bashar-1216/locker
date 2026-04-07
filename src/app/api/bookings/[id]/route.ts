@@ -18,8 +18,10 @@ export async function PATCH(
       where: { id },
       data: { status },
       include: {
-        user: true,
-        locker: { include: { room: true } }
+        user: {
+          select: { id: true, name: true, studentId: true, phone: true }
+        },
+        seat: { include: { room: true } }
       }
     })
 
@@ -40,8 +42,10 @@ export async function DELETE(
       where: { id },
       data: { status: 'CANCELLED' },
       include: {
-        user: true,
-        locker: { include: { room: true } }
+        user: {
+          select: { id: true, name: true, studentId: true, phone: true }
+        },
+        seat: { include: { room: true } }
       }
     })
 

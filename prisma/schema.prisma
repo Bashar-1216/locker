@@ -3,7 +3,7 @@ generator client {
 }
 
 datasource db {
-  provider = "postgresql"
+  provider = "sqlite"
   url      = env("DATABASE_URL")
 }
 
@@ -12,6 +12,7 @@ model User {
   name      String
   studentId String?  @unique
   email     String?  @unique
+  password  String
   phone     String?
   role      String   @default("STUDENT")
   createdAt DateTime @default(now())
@@ -25,30 +26,30 @@ model Room {
   description String?
   capacity    Int
   createdAt   DateTime @default(now())
-  lockers     Locker[]
+  seats       Seat[]
 }
 
-model Locker {
-  id           String   @id @default(cuid())
-  lockerNumber Int
-  row          Int
-  column       Int
-  roomId       String
-  status       String   @default("AVAILABLE")
-  createdAt    DateTime @default(now())
-  room         Room     @relation(fields: [roomId], references: [id], onDelete: Cascade)
-  bookings     Booking[]
+model Seat {
+  id        String   @id @default(cuid())
+  seatNumber Int
+  row       Int
+  column    Int
+  roomId    String
+  status    String   @default("AVAILABLE")
+  createdAt DateTime @default(now())
+  room      Room     @relation(fields: [roomId], references: [id], onDelete: Cascade)
+  bookings  Booking[]
 }
 
 model Booking {
   id        String   @id @default(cuid())
   userId    String
-  lockerId  String
+  seatId    String
   date      String
   timeSlot  String
   status    String   @default("PENDING")
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
   user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  locker    Locker   @relation(fields: [lockerId], references: [id], onDelete: Cascade)
+  seat      Seat     @relation(fields: [seatId], references: [id], onDelete: Cascade)
 }

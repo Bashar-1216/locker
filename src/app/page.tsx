@@ -34,7 +34,8 @@ import {
   Building2, Sofa, CalendarDays, BarChart3, Users, CheckCircle2,
   XCircle, Clock, TrendingUp, Plus, Trash2, RefreshCw, Home,
   Armchair, AlertTriangle, LayoutDashboard, BookOpen, GraduationCap,
-  ArrowLeft, Sparkles, Monitor, DoorOpen, Zap, UserCheck, ChevronLeft, Wrench, Box
+  ArrowLeft, Sparkles, Monitor, DoorOpen, Zap, UserCheck, ChevronLeft, Wrench,
+  LogIn, LogOut, UserPlus, Eye, EyeOff, Mail, Lock, User
 } from 'lucide-react'
 
 // ====== Types ======
@@ -44,12 +45,12 @@ interface Room {
   description: string | null
   capacity: number
   createdAt: string
-  _count: { lockers: number }
+  _count: { seats: number }
 }
 
-interface Locker {
+interface Seat {
   id: string
-  lockerNumber: number
+  seatNumber: number
   row: number
   column: number
   roomId: string
@@ -59,21 +60,21 @@ interface Locker {
 interface Booking {
   id: string
   userId: string
-  lockerId: string
+  seatId: string
   date: string
   timeSlot: string
   status: string
   createdAt: string
   updatedAt: string
   user: { id: string; name: string; studentId: string | null; phone: string | null }
-  locker: Locker & { room: Room }
+  seat: Seat & { room: Room }
 }
 
 interface Stats {
-  totalLockers: number
-  availableLockers: number
-  occupiedLockers: number
-  maintenanceLockers: number
+  totalSeats: number
+  availableSeats: number
+  occupiedSeats: number
+  maintenanceSeats: number
   totalRooms: number
   totalBookings: number
   confirmedBookings: number
@@ -84,6 +85,15 @@ interface Stats {
   dailyBookings: { date: string; count: number }[]
   latestBookings: Booking[]
   bookingsByRoom: { name: string; bookings: number }[]
+}
+
+interface CurrentUser {
+  id: string
+  name: string
+  email: string
+  studentId: string | null
+  phone: string | null
+  role: string
 }
 
 // ====== Constants ======
@@ -97,7 +107,7 @@ const STATUS_MAP: Record<string, { label: string; variant: 'default' | 'secondar
   CANCELLED: { label: 'ملغي', variant: 'destructive', color: 'text-red-600 border-red-300 bg-red-50' }
 }
 
-const LOCKER_STATUS_LABELS: Record<string, string> = {
+const SEAT_STATUS_LABELS: Record<string, string> = {
   AVAILABLE: 'متاح',
   OCCUPIED: 'محجوز',
   MAINTENANCE: 'صيانة'
@@ -112,15 +122,15 @@ const TIME_SLOTS = [
 
 const TABS = [
   { value: 'home', label: 'الرئيسية', icon: Home },
-  { value: 'booking', label: 'حجز لوكر', icon: DoorOpen },
+  { value: 'booking', label: 'حجز واكر', icon: Sofa },
   { value: 'my-bookings', label: 'حجوزاتي', icon: CalendarDays },
   { value: 'dashboard', label: 'لوحة التحكم', icon: LayoutDashboard }
 ]
 
 const STAT_CARDS = [
-  { key: 'totalLockers', label: 'إجمالي اللواكر', icon: Box, gradient: 'from-emerald-500 to-emerald-700', accent: '#059669', accentLight: '#10b981' },
-  { key: 'availableLockers', label: 'اللواكر المتاحة', icon: CheckCircle2, gradient: 'from-teal-400 to-teal-600', accent: '#14b8a6', accentLight: '#5eead4' },
-  { key: 'occupiedLockers', label: 'اللواكر المحجوزة', icon: XCircle, gradient: 'from-red-400 to-red-600', accent: '#ef4444', accentLight: '#fca5a5' },
+  { key: 'totalSeats', label: 'إجمالي الواكرات', icon: Armchair, gradient: 'from-emerald-500 to-emerald-700', accent: '#059669', accentLight: '#10b981' },
+  { key: 'availableSeats', label: 'الواكرات المتاحة', icon: CheckCircle2, gradient: 'from-teal-400 to-teal-600', accent: '#14b8a6', accentLight: '#5eead4' },
+  { key: 'occupiedSeats', label: 'الواكرات المحجوزة', icon: XCircle, gradient: 'from-red-400 to-red-600', accent: '#ef4444', accentLight: '#fca5a5' },
   { key: 'occupancyRate', label: 'نسبة الإشغال', icon: TrendingUp, gradient: 'from-amber-400 to-amber-600', accent: '#f59e0b', accentLight: '#fcd34d' }
 ] as const
 
@@ -191,7 +201,7 @@ function EmptyState({ icon: Icon, message, actionLabel, onAction }: {
   actionLabel?: string
   onAction?: () => void
 }) {
-  const IconComponent = Icon || Box
+  const IconComponent = Icon || Armchair
   return (
     <motion.div
       initial={{ opacity: 0, scale: 0.95 }}
@@ -332,12 +342,416 @@ function BookingsPageSkeleton() {
   )
 }
 
+// ====== AUTH MODAL COMPONENT ======
+function AuthModal({
+  open,
+  onOpenChange,
+  authMode,
+  setAuthMode,
+  onAuthSuccess
+}: {
+  open: boolean
+  onOpenChange: (open: boolean) => void
+  authMode: 'login' | 'register'
+  setAuthMode: (mode: 'login' | 'register') => void
+  onAuthSuccess: (user: CurrentUser, token: string) => void
+}) {
+  const [loading, setLoading] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+
+  // Login form state
+  const [loginEmail, setLoginEmail] = useState('')
+  const [loginPassword, setLoginPassword] = useState('')
+  const [showLoginPassword, setShowLoginPassword] = useState(false)
+
+  // Register form state
+  const [regName, setRegName] = useState('')
+  const [regEmail, setRegEmail] = useState('')
+  const [regStudentId, setRegStudentId] = useState('')
+  const [regPhone, setRegPhone] = useState('')
+  const [regPassword, setRegPassword] = useState('')
+  const [regConfirmPassword, setRegConfirmPassword] = useState('')
+  const [showRegPassword, setShowRegPassword] = useState(false)
+  const [showRegConfirmPassword, setShowRegConfirmPassword] = useState(false)
+
+  const handleLogin = async (e: React.FormEvent) => {
+    e.preventDefault()
+    if (!loginEmail.trim() || !loginPassword.trim()) return
+    setLoading(true)
+    setError(null)
+    try {
+      const res = await fetch('/api/auth/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: loginEmail, password: loginPassword })
+      })
+      const data = await res.json()
+      if (res.ok) {
+        localStorage.setItem('auth_token', data.token)
+        onAuthSuccess(data.user, data.token)
+        onOpenChange(false)
+        setLoginEmail('')
+        setLoginPassword('')
+      } else {
+        setError(data.error || 'فشل في تسجيل الدخول')
+      }
+    } catch {
+      setError('حدث خطأ في الاتصال')
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const handleRegister = async (e: React.FormEvent) => {
+    e.preventDefault()
+    if (!regName.trim() || !regEmail.trim() || !regPassword.trim()) return
+    if (regPassword.length < 6) {
+      setError('كلمة المرور يجب أن تكون 6 أحرف على الأقل')
+      return
+    }
+    if (regPassword !== regConfirmPassword) {
+      setError('كلمتا المرور غير متطابقتين')
+      return
+    }
+    setLoading(true)
+    setError(null)
+    try {
+      const res = await fetch('/api/auth/register', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          name: regName,
+          email: regEmail,
+          password: regPassword,
+          studentId: regStudentId || undefined,
+          phone: regPhone || undefined
+        })
+      })
+      const data = await res.json()
+      if (res.ok) {
+        localStorage.setItem('auth_token', data.token)
+        onAuthSuccess(data.user, data.token)
+        onOpenChange(false)
+        setRegName('')
+        setRegEmail('')
+        setRegStudentId('')
+        setRegPhone('')
+        setRegPassword('')
+        setRegConfirmPassword('')
+      } else {
+        setError(data.error || 'فشل في إنشاء الحساب')
+      }
+    } catch {
+      setError('حدث خطأ في الاتصال')
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="sm:max-w-md rounded-2xl p-0 overflow-hidden border-0 bg-white/95 backdrop-blur-xl">
+        {/* Header with gradient */}
+        <div className="bg-gradient-to-l from-emerald-600 to-teal-600 p-6 text-white text-center relative overflow-hidden">
+          <div className="absolute inset-0 opacity-10">
+            <div className="absolute -top-4 -right-4 w-32 h-32 rounded-full bg-white/20" />
+            <div className="absolute -bottom-8 -left-8 w-40 h-40 rounded-full bg-white/10" />
+          </div>
+          <motion.div
+            key={authMode}
+            initial={{ opacity: 0, y: -10 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.3 }}
+            className="relative z-10"
+          >
+            <div className="w-16 h-16 rounded-2xl bg-white/20 backdrop-blur-sm flex items-center justify-center mx-auto mb-3 border border-white/30">
+              {authMode === 'login' ? (
+                <LogIn className="h-8 w-8" />
+              ) : (
+                <UserPlus className="h-8 w-8" />
+              )}
+            </div>
+            <h2 className="text-xl font-bold">
+              {authMode === 'login' ? 'تسجيل الدخول' : 'إنشاء حساب جديد'}
+            </h2>
+            <p className="text-emerald-100 text-xs mt-1">
+              {authMode === 'login'
+                ? 'أدخلي بياناتكِ للوصول إلى حسابكِ'
+                : 'أنشئي حسابكِ في نظام حجز الواكرات'}
+            </p>
+          </motion.div>
+        </div>
+
+        {/* Form */}
+        <motion.div
+          key={`form-${authMode}`}
+          initial={{ opacity: 0, x: authMode === 'login' ? -20 : 20 }}
+          animate={{ opacity: 1, x: 0 }}
+          transition={{ duration: 0.3 }}
+          className="p-6"
+        >
+          {error && (
+            <motion.div
+              initial={{ opacity: 0, y: -5 }}
+              animate={{ opacity: 1, y: 0 }}
+              className="bg-red-50 border border-red-200 text-red-600 rounded-xl p-3 mb-4 text-xs font-medium flex items-center gap-2"
+            >
+              <AlertTriangle className="h-4 w-4 flex-shrink-0" />
+              {error}
+            </motion.div>
+          )}
+
+          {authMode === 'login' ? (
+            <form onSubmit={handleLogin} className="space-y-4">
+              <div className="space-y-2">
+                <Label className="text-sm font-medium flex items-center gap-1.5">
+                  <Mail className="h-3.5 w-3.5 text-emerald-600" />
+                  البريد الإلكتروني
+                </Label>
+                <Input
+                  type="email"
+                  placeholder="example@email.com"
+                  value={loginEmail}
+                  onChange={e => { setLoginEmail(e.target.value); setError(null) }}
+                  className="rounded-xl h-11 focus:ring-emerald-300"
+                  dir="ltr"
+                  required
+                />
+              </div>
+              <div className="space-y-2">
+                <Label className="text-sm font-medium flex items-center gap-1.5">
+                  <Lock className="h-3.5 w-3.5 text-emerald-600" />
+                  كلمة المرور
+                </Label>
+                <div className="relative">
+                  <Input
+                    type={showLoginPassword ? 'text' : 'password'}
+                    placeholder="••••••••"
+                    value={loginPassword}
+                    onChange={e => { setLoginPassword(e.target.value); setError(null) }}
+                    className="rounded-xl h-11 focus:ring-emerald-300 pl-10"
+                    dir="ltr"
+                    required
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowLoginPassword(!showLoginPassword)}
+                    className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
+                  >
+                    {showLoginPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                  </button>
+                </div>
+              </div>
+              <Button
+                type="submit"
+                disabled={loading || !loginEmail.trim() || !loginPassword.trim()}
+                className="w-full bg-emerald-600 hover:bg-emerald-700 rounded-xl h-11 font-semibold transition-all duration-300 disabled:opacity-50 shadow-lg shadow-emerald-200"
+              >
+                {loading ? (
+                  <RefreshCw className="h-4 w-4 animate-spin" />
+                ) : (
+                  <>
+                    <LogIn className="h-4 w-4 ml-2" />
+                    تسجيل الدخول
+                  </>
+                )}
+              </Button>
+              <p className="text-center text-xs text-muted-foreground">
+                ليس لديكِ حساب؟{' '}
+                <button
+                  type="button"
+                  onClick={() => { setAuthMode('register'); setError(null) }}
+                  className="text-emerald-600 font-semibold hover:underline"
+                >
+                  إنشاء حساب جديد
+                </button>
+              </p>
+            </form>
+          ) : (
+            <form onSubmit={handleRegister} className="space-y-4">
+              <div className="space-y-2">
+                <Label className="text-sm font-medium flex items-center gap-1.5">
+                  <User className="h-3.5 w-3.5 text-emerald-600" />
+                  الاسم الكامل <span className="text-red-500">*</span>
+                </Label>
+                <Input
+                  placeholder="أدخلي اسمكِ الكامل"
+                  value={regName}
+                  onChange={e => { setRegName(e.target.value); setError(null) }}
+                  className="rounded-xl h-11 focus:ring-emerald-300"
+                  required
+                />
+              </div>
+              <div className="space-y-2">
+                <Label className="text-sm font-medium flex items-center gap-1.5">
+                  <Mail className="h-3.5 w-3.5 text-emerald-600" />
+                  البريد الإلكتروني <span className="text-red-500">*</span>
+                </Label>
+                <Input
+                  type="email"
+                  placeholder="example@email.com"
+                  value={regEmail}
+                  onChange={e => { setRegEmail(e.target.value); setError(null) }}
+                  className="rounded-xl h-11 focus:ring-emerald-300"
+                  dir="ltr"
+                  required
+                />
+              </div>
+              <div className="grid grid-cols-2 gap-3">
+                <div className="space-y-2">
+                  <Label className="text-sm font-medium">رقم الطالبة</Label>
+                  <Input
+                    placeholder="رقم الهوية"
+                    value={regStudentId}
+                    onChange={e => { setRegStudentId(e.target.value); setError(null) }}
+                    className="rounded-xl h-11 focus:ring-emerald-300"
+                    dir="ltr"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label className="text-sm font-medium">رقم الجوال</Label>
+                  <Input
+                    placeholder="05XXXXXXXX"
+                    value={regPhone}
+                    onChange={e => { setRegPhone(e.target.value); setError(null) }}
+                    className="rounded-xl h-11 focus:ring-emerald-300"
+                    dir="ltr"
+                  />
+                </div>
+              </div>
+              <div className="space-y-2">
+                <Label className="text-sm font-medium flex items-center gap-1.5">
+                  <Lock className="h-3.5 w-3.5 text-emerald-600" />
+                  كلمة المرور <span className="text-red-500">*</span>
+                  <span className="text-[10px] text-muted-foreground font-normal">(6 أحرف على الأقل)</span>
+                </Label>
+                <div className="relative">
+                  <Input
+                    type={showRegPassword ? 'text' : 'password'}
+                    placeholder="••••••••"
+                    value={regPassword}
+                    onChange={e => { setRegPassword(e.target.value); setError(null) }}
+                    className="rounded-xl h-11 focus:ring-emerald-300 pl-10"
+                    dir="ltr"
+                    required
+                    minLength={6}
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowRegPassword(!showRegPassword)}
+                    className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
+                  >
+                    {showRegPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                  </button>
+                </div>
+              </div>
+              <div className="space-y-2">
+                <Label className="text-sm font-medium flex items-center gap-1.5">
+                  <Lock className="h-3.5 w-3.5 text-emerald-600" />
+                  تأكيد كلمة المرور <span className="text-red-500">*</span>
+                </Label>
+                <div className="relative">
+                  <Input
+                    type={showRegConfirmPassword ? 'text' : 'password'}
+                    placeholder="••••••••"
+                    value={regConfirmPassword}
+                    onChange={e => { setRegConfirmPassword(e.target.value); setError(null) }}
+                    className="rounded-xl h-11 focus:ring-emerald-300 pl-10"
+                    dir="ltr"
+                    required
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowRegConfirmPassword(!showRegConfirmPassword)}
+                    className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
+                  >
+                    {showRegConfirmPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                  </button>
+                </div>
+              </div>
+              <Button
+                type="submit"
+                disabled={loading || !regName.trim() || !regEmail.trim() || !regPassword.trim() || !regConfirmPassword.trim()}
+                className="w-full bg-emerald-600 hover:bg-emerald-700 rounded-xl h-11 font-semibold transition-all duration-300 disabled:opacity-50 shadow-lg shadow-emerald-200"
+              >
+                {loading ? (
+                  <RefreshCw className="h-4 w-4 animate-spin" />
+                ) : (
+                  <>
+                    <UserPlus className="h-4 w-4 ml-2" />
+                    إنشاء حساب
+                  </>
+                )}
+              </Button>
+              <p className="text-center text-xs text-muted-foreground">
+                لديكِ حساب بالفعل؟{' '}
+                <button
+                  type="button"
+                  onClick={() => { setAuthMode('login'); setError(null) }}
+                  className="text-emerald-600 font-semibold hover:underline"
+                >
+                  تسجيل الدخول
+                </button>
+              </p>
+            </form>
+          )}
+        </motion.div>
+      </DialogContent>
+    </Dialog>
+  )
+}
+
 // ====== MAIN APPLICATION ======
 export default function SeatBookingApp() {
   const [activeTab, setActiveTab] = useState('home')
 
+  // Auth state
+  const [currentUser, setCurrentUser] = useState<CurrentUser | null>(null)
+  const [token, setToken] = useState<string | null>(null)
+  const [showAuthModal, setShowAuthModal] = useState(false)
+  const [authMode, setAuthMode] = useState<'login' | 'register'>('login')
+
+  // Restore session on mount
+  const [mounted, setMounted] = useState(false)
+  useEffect(() => {
+    setMounted(true)
+    const savedToken = typeof window !== 'undefined' ? localStorage.getItem('auth_token') : null
+    if (savedToken) {
+      fetch('/api/auth/me', {
+        headers: { 'Authorization': `Bearer ${savedToken}` }
+      })
+        .then(res => {
+          if (res.ok) return res.json()
+          throw new Error('Session expired')
+        })
+        .then(data => {
+          setCurrentUser(data.user)
+          setToken(savedToken)
+        })
+        .catch(() => {
+          localStorage.removeItem('auth_token')
+        })
+    }
+  }, [])
+
+  const handleAuthSuccess = (user: CurrentUser, newToken: string) => {
+    setCurrentUser(user)
+    setToken(newToken)
+  }
+
+  const handleLogout = () => {
+    setCurrentUser(null)
+    setToken(null)
+    if (typeof window !== 'undefined') localStorage.removeItem('auth_token')
+  }
+
   const handleTabChange = (value: string) => {
     setActiveTab(value)
+  }
+
+  // Get user initials for avatar
+  const getUserInitials = (name: string) => {
+    return name.split(' ').slice(0, 2).map(n => n[0]).join('').toUpperCase()
   }
 
   return (
@@ -348,27 +762,76 @@ export default function SeatBookingApp() {
           <div className="flex items-center justify-between relative z-10">
             {/* Logo + Name */}
             <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-xl bg-white/20 backdrop-blur-sm flex items-center justify-center border-2 border-white/30 shadow-lg">
+              <div className="w-12 h-12 rounded-2xl bg-white/20 backdrop-blur-sm flex items-center justify-center border-2 border-white/30 shadow-lg">
                 <GraduationCap className="h-6 w-6 text-white" />
               </div>
               <div>
-                <h1 className="text-xl font-bold leading-tight tracking-tight">نظام حجز اللواكر</h1>
+                <h1 className="text-xl font-bold leading-tight tracking-tight">نظام حجز الواكرات</h1>
+                <p className="text-[11px] text-emerald-100 font-medium">الكليه التقنيه</p>
               </div>
             </div>
 
-            {/* Right side: Clock + Portal Button */}
+            {/* Right side: Clock + Auth Buttons */}
             <div className="flex items-center gap-2">
               <div className="hidden md:flex">
                 <RealTimeClock />
               </div>
-              <button className="flex items-center gap-2 bg-white/15 hover:bg-white/25 rounded-full px-4 py-2 backdrop-blur-sm transition-all duration-300 border border-white/20 hover:border-white/40 hover:shadow-lg group">
-                <GraduationCap className="h-4 w-4 group-hover:scale-110 transition-transform" />
-                <span className="text-xs font-semibold">بوابة الطالبات</span>
-              </button>
+              {currentUser ? (
+                <motion.div
+                  initial={{ opacity: 0, scale: 0.9 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  className="flex items-center gap-2"
+                >
+                  <div className="flex items-center gap-2 bg-white/15 hover:bg-white/20 rounded-full px-3 py-1.5 backdrop-blur-sm border border-white/20 transition-all duration-300">
+                    <div className="w-8 h-8 rounded-full bg-emerald-500 flex items-center justify-center text-white text-xs font-bold shadow-lg">
+                      {getUserInitials(currentUser.name)}
+                    </div>
+                    <span className="text-xs font-semibold max-w-[100px] truncate hidden sm:inline-block">{currentUser.name}</span>
+                  </div>
+                  <button
+                    onClick={handleLogout}
+                    className="flex items-center gap-1.5 bg-white/15 hover:bg-red-500/80 rounded-full px-3 py-2 backdrop-blur-sm transition-all duration-300 border border-white/20 hover:border-red-400 group"
+                    title="تسجيل الخروج"
+                  >
+                    <LogOut className="h-4 w-4 group-hover:scale-110 transition-transform" />
+                    <span className="text-xs font-semibold hidden sm:inline-block">خروج</span>
+                  </button>
+                </motion.div>
+              ) : (
+                <motion.div
+                  initial={{ opacity: 0, scale: 0.9 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  className="flex items-center gap-2"
+                >
+                  <button
+                    onClick={() => { setAuthMode('login'); setShowAuthModal(true) }}
+                    className="flex items-center gap-2 bg-white/15 hover:bg-white/25 rounded-full px-4 py-2 backdrop-blur-sm transition-all duration-300 border border-white/20 hover:border-white/40 hover:shadow-lg group"
+                  >
+                    <LogIn className="h-4 w-4 group-hover:scale-110 transition-transform" />
+                    <span className="text-xs font-semibold">تسجيل الدخول</span>
+                  </button>
+                  <button
+                    onClick={() => { setAuthMode('register'); setShowAuthModal(true) }}
+                    className="flex items-center gap-2 bg-emerald-500/80 hover:bg-emerald-500 rounded-full px-4 py-2 backdrop-blur-sm transition-all duration-300 border border-emerald-400/50 hover:border-emerald-400 hover:shadow-lg shadow-emerald-900/20 group"
+                  >
+                    <UserPlus className="h-4 w-4 group-hover:scale-110 transition-transform" />
+                    <span className="text-xs font-semibold">إنشاء حساب</span>
+                  </button>
+                </motion.div>
+              )}
             </div>
           </div>
         </div>
       </header>
+
+      {/* ===== AUTH MODAL ===== */}
+      <AuthModal
+        open={showAuthModal}
+        onOpenChange={setShowAuthModal}
+        authMode={authMode}
+        setAuthMode={setAuthMode}
+        onAuthSuccess={handleAuthSuccess}
+      />
 
       {/* ===== MAIN CONTENT ===== */}
       <main className="flex-1 max-w-7xl mx-auto w-full px-4 py-6">
@@ -399,10 +862,18 @@ export default function SeatBookingApp() {
                 <HomePage onTabChange={handleTabChange} />
               </TabsContent>
               <TabsContent value="booking" className="mt-0">
-                <BookingPage />
+                <BookingPage
+                  currentUser={currentUser}
+                  token={token}
+                  onOpenAuthModal={() => { setAuthMode('login'); setShowAuthModal(true) }}
+                />
               </TabsContent>
               <TabsContent value="my-bookings" className="mt-0">
-                <MyBookingsPage />
+                <MyBookingsPage
+                  currentUser={currentUser}
+                  token={token}
+                  onOpenAuthModal={() => { setAuthMode('login'); setShowAuthModal(true) }}
+                />
               </TabsContent>
               <TabsContent value="dashboard" className="mt-0">
                 <DashboardPage />
@@ -418,12 +889,12 @@ export default function SeatBookingApp() {
           <div className="flex flex-col sm:flex-row items-center justify-between gap-3 text-xs text-muted-foreground">
             <div className="flex items-center gap-2">
               <Building2 className="h-4 w-4 text-emerald-600" />
-              <span className="font-medium">الجهة التعليمية</span>
+              <span className="font-medium">نظام حجز الواكرات</span>
             </div>
-            <p className="text-center">نظام حجز اللواكر الإلكتروني &copy; {new Date().getFullYear()}</p>
+            <p className="text-center">نظام حجز الواكرات الإلكتروني &copy; {new Date().getFullYear()}</p>
             <div className="flex items-center gap-1.5">
               <BookOpen className="h-3.5 w-3.5 text-emerald-600" />
-              <span>جميع الحقوق محفوظة</span>
+              <span>المؤسسة العامة للتدريب التقني والمهني</span>
             </div>
           </div>
         </div>
@@ -456,9 +927,9 @@ function HomePage({ onTabChange }: { onTabChange: (v: string) => void }) {
   }, [fetchStats])
 
   const pieData = stats ? [
-    { name: 'متاح', value: stats.availableLockers },
-    { name: 'محجوز', value: stats.occupiedLockers },
-    { name: 'صيانة', value: stats.maintenanceLockers }
+    { name: 'متاح', value: stats.availableSeats },
+    { name: 'محجوز', value: stats.occupiedSeats },
+    { name: 'صيانة', value: stats.maintenanceSeats }
   ].filter(d => d.value > 0) : []
 
   const barData = stats?.dailyBookings?.map(d => ({ ...d, date: d.date.slice(5) })) || []
@@ -498,11 +969,12 @@ function HomePage({ onTabChange }: { onTabChange: (v: string) => void }) {
               <GraduationCap className="h-7 w-7" />
             </div>
             <div>
-              <p className="text-emerald-100 text-sm font-medium">الكلية التقنية</p>
+              <h2 className="text-2xl font-bold leading-tight">مرحباً بكِ في نظام حجز الواكرات</h2>
+              <p className="text-emerald-100 text-sm font-medium">الكليه التقنيه</p>
             </div>
           </div>
           <p className="text-emerald-50 text-sm mt-2 leading-relaxed max-w-xl">
-            يمكنكِ حجز مقعدكِ بسهولة عبر النظام الإلكتروني. اختر القاعة والتاريخ المناسبين لكِ واستمتعي بتجربة تعليمية مريحة.
+            يمكنكِ حجز واكركِ بسهولة عبر النظام الإلكتروني. اختر القاعة والتاريخ المناسبين لكِ واستمتعي بتجربة تعليمية مريحة.
           </p>
 
           {/* Quick Action Buttons */}
@@ -550,10 +1022,10 @@ function HomePage({ onTabChange }: { onTabChange: (v: string) => void }) {
 
           const progressPct = card.key === 'occupancyRate'
             ? Number(rawValue)
-            : card.key === 'totalLockers'
+            : card.key === 'totalSeats'
               ? 100
-              : stats.totalLockers > 0
-                ? Math.round((Number(rawValue) / stats.totalLockers) * 100)
+              : stats.totalSeats > 0
+                ? Math.round((Number(rawValue) / stats.totalSeats) * 100)
                 : 0
 
           return (
@@ -602,7 +1074,7 @@ function HomePage({ onTabChange }: { onTabChange: (v: string) => void }) {
                 <div className="p-1.5 rounded-lg bg-emerald-100">
                   <BarChart3 className="h-4 w-4 text-emerald-600" />
                 </div>
-                توزيع حالة المقاعد
+                توزيع حالة الواكرات
               </CardTitle>
             </CardHeader>
             <CardContent>
@@ -733,7 +1205,7 @@ function HomePage({ onTabChange }: { onTabChange: (v: string) => void }) {
                         <span>{booking.seat.room.name}</span>
                         <span className="opacity-40">|</span>
                         <Armchair className="h-3 w-3" />
-                        <span>مقعد {booking.seat.seatNumber}</span>
+                        <span>واكر {booking.seat.seatNumber}</span>
                       </div>
                       <div className="flex items-center gap-2 text-xs text-muted-foreground">
                         <CalendarDays className="h-3 w-3" />
@@ -757,17 +1229,29 @@ function HomePage({ onTabChange }: { onTabChange: (v: string) => void }) {
 }
 
 // ====== BOOKING PAGE ======
-function BookingPage() {
+function BookingPage({
+  currentUser,
+  token,
+  onOpenAuthModal
+}: {
+  currentUser: CurrentUser | null
+  token: string | null
+  onOpenAuthModal: () => void
+}) {
   const [rooms, setRooms] = useState<Room[]>([])
-  const [lockers, setLockers] = useState<Locker[]>([])
+  const [seats, setSeats] = useState<Seat[]>([])
   const [selectedRoom, setSelectedRoom] = useState<string>('')
-  const [selectedLocker, setSelectedLocker] = useState<Locker | null>(null)
+  const [selectedSeat, setSelectedSeat] = useState<Seat | null>(null)
   const [loading, setLoading] = useState(true)
   const [bookingLoading, setBookingLoading] = useState(false)
   const [showConfirm, setShowConfirm] = useState(false)
   const [successMessage, setSuccessMessage] = useState<string | null>(null)
-  const [currentStep, setCurrentStep] = useState(1)
 
+  // When not logged in, use 3-step flow; when logged in, use 2-step flow
+  const isLoggedIn = !!currentUser && !!token
+  const [currentStep, setCurrentStep] = useState(isLoggedIn ? 1 : 1)
+
+  // Guest form data (only used when not logged in)
   const [formData, setFormData] = useState({
     name: '',
     studentId: '',
@@ -800,10 +1284,10 @@ function BookingPage() {
         const res = await fetch(`/api/seats?roomId=${selectedRoom}`)
         if (res.ok) {
           const data = await res.json()
-          setLockers(data)
+          setSeats(data)
         }
       } catch (err) {
-        console.error('Error fetching lockers:', err)
+        console.error('Error fetching seats:', err)
       }
     }
     fetchSeats()
@@ -814,71 +1298,677 @@ function BookingPage() {
     setFormData(prev => ({ ...prev, date: today }))
   }, [])
 
-  const handleLockerClick = (locker: Locker) => {
-    if (locker.status !== 'AVAILABLE') return
-    setSelectedLocker(locker)
+  const handleSeatClick = (seat: Seat) => {
+    if (seat.status !== 'AVAILABLE') return
+    setSelectedSeat(seat)
   }
 
   const handleBooking = async () => {
-    if (!selectedLocker || !formData.name || !formData.date || !formData.timeSlot) return
-    setBookingLoading(true)
-    try {
-      const res = await fetch('/api/bookings', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          name: formData.name,
-          studentId: formData.studentId || undefined,
-          phone: formData.phone || undefined,
-          lockerId: selectedLocker.id,
-          date: formData.date,
-          timeSlot: formData.timeSlot
+    if (isLoggedIn) {
+      // Authenticated booking
+      if (!selectedSeat || !formData.date || !formData.timeSlot) return
+      setBookingLoading(true)
+      try {
+        const headers: Record<string, string> = {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        }
+        const res = await fetch('/api/bookings', {
+          method: 'POST',
+          headers,
+          body: JSON.stringify({
+            seatId: selectedSeat.id,
+            date: formData.date,
+            timeSlot: formData.timeSlot
+          })
         })
-      })
-      if (res.ok) {
-        const booking = await res.json()
-        setSuccessMessage(`تم حجز لوكر ${booking.locker.lockerNumber} في ${booking.locker.room.name} بنجاح!`)
-        setShowConfirm(false)
-        setSelectedLocker(null)
-        setCurrentStep(1)
-        setFormData({ name: '', studentId: '', phone: '', date: new Date().toISOString().split('T')[0], timeSlot: '' })
-        setSelectedRoom('')
-        const lockersRes = await fetch(`/api/lockers?roomId=${selectedRoom}`)
-        if (lockersRes.ok) setLockers(await lockersRes.json())
-      } else {
-        const err = await res.json()
-        alert(err.error || 'حدث خطأ أثناء الحجز')
+        if (res.ok) {
+          const booking = await res.json()
+          setSuccessMessage(`تم حجز واكر ${booking.seat.seatNumber} في ${booking.seat.room.name} بنجاح!`)
+          setShowConfirm(false)
+          setSelectedSeat(null)
+          setCurrentStep(1)
+          setFormData(prev => ({ ...prev, date: new Date().toISOString().split('T')[0], timeSlot: '' }))
+          setSelectedRoom('')
+          if (selectedRoom) {
+            const seatsRes = await fetch(`/api/seats?roomId=${selectedRoom}`)
+            if (seatsRes.ok) setSeats(await seatsRes.json())
+          }
+        } else {
+          const err = await res.json()
+          alert(err.error || 'حدث خطأ أثناء الحجز')
+        }
+      } catch {
+        alert('حدث خطأ في الاتصال')
+      } finally {
+        setBookingLoading(false)
       }
-    } catch {
-      alert('حدث خطأ في الاتصال')
-    } finally {
-      setBookingLoading(false)
+    } else {
+      // Guest booking (existing behavior)
+      if (!selectedSeat || !formData.name || !formData.date || !formData.timeSlot) return
+      setBookingLoading(true)
+      try {
+        const res = await fetch('/api/bookings', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            name: formData.name,
+            studentId: formData.studentId || undefined,
+            phone: formData.phone || undefined,
+            seatId: selectedSeat.id,
+            date: formData.date,
+            timeSlot: formData.timeSlot
+          })
+        })
+        if (res.ok) {
+          const booking = await res.json()
+          setSuccessMessage(`تم حجز واكر ${booking.seat.seatNumber} في ${booking.seat.room.name} بنجاح!`)
+          setShowConfirm(false)
+          setSelectedSeat(null)
+          setCurrentStep(1)
+          setFormData({ name: '', studentId: '', phone: '', date: new Date().toISOString().split('T')[0], timeSlot: '' })
+          setSelectedRoom('')
+          const seatsRes = await fetch(`/api/seats?roomId=${selectedRoom}`)
+          if (seatsRes.ok) setSeats(await seatsRes.json())
+        } else {
+          const err = await res.json()
+          alert(err.error || 'حدث خطأ أثناء الحجز')
+        }
+      } catch {
+        alert('حدث خطأ في الاتصال')
+      } finally {
+        setBookingLoading(false)
+      }
     }
   }
 
+  // Validation for guest flow
   const canProceedStep1 = formData.name.trim() !== ''
-  const canProceedStep2 = selectedRoom !== ''
-  const canProceedStep3 = selectedRoom !== '' && lockers.length > 0
+  const canProceedStep2 = isLoggedIn ? selectedRoom !== '' && formData.date !== '' && formData.timeSlot !== '' : selectedRoom !== ''
+  const canProceedStep3 = selectedRoom !== '' && seats.length > 0
 
-  const STEP_LABELS = [
-    { num: 1, label: 'بيانات الطالبة', icon: Users },
-    { num: 2, label: 'اختيار المنطقة', icon: Building2 },
-    { num: 3, label: 'اختيار اللوكر', icon: Box }
+  // Step labels differ based on auth state
+  const STEP_LABELS_LOGGED_IN = [
+    { num: 1, label: 'اختيار القاعة والموعد', icon: Building2 },
+    { num: 2, label: 'اختيار واكر', icon: Armchair }
   ]
 
-  // Group lockers by row
-  const maxRow = lockers.length > 0 ? Math.max(...lockers.map(s => s.row)) : 0
-  const lockerGrid: Record<number, Locker[]> = {}
-  lockers.forEach(locker => {
-    if (!lockerGrid[locker.row]) lockerGrid[locker.row] = []
-    lockerGrid[locker.row].push(locker)
+  const STEP_LABELS_GUEST = [
+    { num: 1, label: 'بيانات الطالبة', icon: Users },
+    { num: 2, label: 'اختيار القاعة', icon: Building2 },
+    { num: 3, label: 'اختيار واكر', icon: Armchair }
+  ]
+
+  const STEP_LABELS = isLoggedIn ? STEP_LABELS_LOGGED_IN : STEP_LABELS_GUEST
+
+  // Group seats by row
+  const maxRow = seats.length > 0 ? Math.max(...seats.map(s => s.row)) : 0
+  const seatGrid: Record<number, Seat[]> = {}
+  seats.forEach(seat => {
+    if (!seatGrid[seat.row]) seatGrid[seat.row] = []
+    seatGrid[seat.row].push(seat)
   })
   const currentRoom = rooms.find(r => r.id === selectedRoom)
 
   if (loading) return <BookingPageSkeleton />
 
+  // When not logged in: show login prompt
+  if (!isLoggedIn) {
+    return (
+      <div className="space-y-6 pb-24">
+        {/* Login Prompt */}
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+        >
+          <Card className="glass-card border-0 rounded-2xl overflow-hidden">
+            <CardContent className="p-8 text-center">
+              <div className="w-20 h-20 rounded-2xl bg-emerald-100 flex items-center justify-center mx-auto mb-4">
+                <LogIn className="h-10 w-10 text-emerald-600" />
+              </div>
+              <h3 className="text-lg font-bold mb-2">سجّلي دخولكِ لحجز واكركِ</h3>
+              <p className="text-sm text-muted-foreground mb-6 max-w-md mx-auto">
+                لضمان إدارة حجوزاتكِ بسهولة وتأمين بياناتكِ، يرجى تسجيل الدخول أو إنشاء حساب جديد قبل الحجز.
+              </p>
+              <div className="flex items-center justify-center gap-3">
+                <Button
+                  onClick={onOpenAuthModal}
+                  className="bg-emerald-600 hover:bg-emerald-700 rounded-xl px-6 h-11 font-semibold transition-all duration-300 shadow-lg shadow-emerald-200"
+                >
+                  <LogIn className="h-4 w-4 ml-2" />
+                  تسجيل الدخول
+                </Button>
+                <Button
+                  onClick={() => {
+                    // Allow guest booking by resetting step
+                    setCurrentStep(1)
+                  }}
+                  variant="outline"
+                  className="rounded-xl px-6 h-11 font-medium border-emerald-200 text-emerald-600 hover:bg-emerald-50"
+                >
+                  <User className="h-4 w-4 ml-2" />
+                  الحجز كضيفة
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+        </motion.div>
+
+        {/* Guest Booking Form - shown below when they choose to book as guest */}
+        <GuestBookingForm
+          currentStep={currentStep}
+          setCurrentStep={setCurrentStep}
+          formData={formData}
+          setFormData={setFormData}
+          canProceedStep1={canProceedStep1}
+          canProceedStep2={canProceedStep2}
+          canProceedStep3={canProceedStep3}
+          STEP_LABELS={STEP_LABELS_GUEST}
+          rooms={rooms}
+          selectedRoom={selectedRoom}
+          setSelectedRoom={setSelectedRoom}
+          seats={seats}
+          selectedSeat={selectedSeat}
+          setSelectedSeat={setSelectedSeat}
+          handleSeatClick={handleSeatClick}
+          maxRow={maxRow}
+          seatGrid={seatGrid}
+          currentRoom={currentRoom}
+          showConfirm={showConfirm}
+          setShowConfirm={setShowConfirm}
+          handleBooking={handleBooking}
+          bookingLoading={bookingLoading}
+          successMessage={successMessage}
+          setSuccessMessage={setSuccessMessage}
+        />
+      </div>
+    )
+  }
+
+  // Logged in booking flow (2 steps)
   return (
     <div className="space-y-6 pb-24">
+      {/* User Info Card */}
+      <motion.div
+        initial={{ opacity: 0, y: -10 }}
+        animate={{ opacity: 1, y: 0 }}
+      >
+        <Card className="border-0 rounded-2xl overflow-hidden bg-gradient-to-l from-emerald-50 to-teal-50">
+          <CardContent className="p-4">
+            <div className="flex items-center gap-3">
+              <div className="w-12 h-12 rounded-xl bg-emerald-600 flex items-center justify-center text-white font-bold shadow-lg">
+                {currentUser!.name.split(' ').slice(0, 2).map(n => n[0]).join('').toUpperCase()}
+              </div>
+              <div className="flex-1 min-w-0">
+                <p className="text-sm font-bold">{currentUser!.name}</p>
+                <div className="flex items-center gap-3 text-xs text-muted-foreground">
+                  {currentUser!.studentId && (
+                    <span className="flex items-center gap-1">
+                      <GraduationCap className="h-3 w-3" />
+                      #{currentUser!.studentId}
+                    </span>
+                  )}
+                  {currentUser!.phone && (
+                    <span dir="ltr">{currentUser!.phone}</span>
+                  )}
+                </div>
+              </div>
+              <Badge className="bg-emerald-100 text-emerald-700 border-emerald-200 text-[10px]">
+                <CheckCircle2 className="h-3 w-3 ml-1" />
+                مسجلة الدخول
+              </Badge>
+            </div>
+          </CardContent>
+        </Card>
+      </motion.div>
+
+      {/* Success Message */}
+      <AnimatePresence>
+        {successMessage && (
+          <motion.div
+            initial={{ opacity: 0, y: -10 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -10 }}
+            className="bg-emerald-50 border border-emerald-200 text-emerald-700 rounded-2xl p-4 flex items-center gap-3"
+          >
+            <CheckCircle2 className="h-5 w-5 flex-shrink-0" />
+            <span className="text-sm font-medium">{successMessage}</span>
+            <Button variant="ghost" size="sm" onClick={() => setSuccessMessage(null)} className="mr-auto text-emerald-600 hover:bg-emerald-100">✕</Button>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* ===== STEPPER (2 steps when logged in) ===== */}
+      <Card className="glass-card border-0 rounded-2xl overflow-hidden">
+        <CardContent className="p-5">
+          <div className="flex items-center justify-between">
+            {STEP_LABELS.map((step, idx) => {
+              const isCompleted = currentStep > step.num
+              const isCurrent = currentStep === step.num
+              const StepIcon = step.icon
+              return (
+                <div key={step.num} className="flex items-center gap-2 flex-1">
+                  <button
+                    onClick={() => {
+                      if (step.num < currentStep) setCurrentStep(step.num)
+                    }}
+                    className={`flex items-center gap-2.5 ${step.num < currentStep ? 'cursor-pointer' : 'cursor-default'}`}
+                  >
+                    <div className={`w-10 h-10 rounded-full flex items-center justify-center transition-all duration-300 text-sm font-bold
+                      ${isCompleted ? 'bg-emerald-600 text-white shadow-lg shadow-emerald-200' :
+                        isCurrent ? 'bg-emerald-100 text-emerald-700 ring-2 ring-emerald-300' :
+                        'bg-muted text-muted-foreground'}`}
+                    >
+                      {isCompleted ? <CheckCircle2 className="h-5 w-5" /> : step.num}
+                    </div>
+                    <div className="hidden sm:block">
+                      <p className={`text-xs font-semibold ${isCurrent ? 'text-emerald-700' : 'text-muted-foreground'}`}>{step.label}</p>
+                    </div>
+                  </button>
+                  {idx < STEP_LABELS.length - 1 && (
+                    <div className={`flex-1 h-0.5 mx-3 rounded-full transition-all duration-500 ${currentStep > step.num ? 'bg-emerald-500' : 'bg-muted'}`} />
+                  )}
+                </div>
+              )
+            })}
+          </div>
+        </CardContent>
+      </Card>
+
+      <AnimatePresence mode="wait">
+        {/* ===== STEP 1: Room + Date/Time Selection ===== */}
+        {currentStep === 1 && (
+          <motion.div key="step1-logged" initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -20 }}>
+            <Card className="glass-card border-0 rounded-2xl overflow-hidden">
+              <CardHeader className="pb-3">
+                <CardTitle className="text-base flex items-center gap-2 font-bold">
+                  <div className="p-1.5 rounded-lg bg-emerald-100">
+                    <Building2 className="h-4 w-4 text-emerald-600" />
+                  </div>
+                  اختيار القاعة والموعد
+                </CardTitle>
+                <CardDescription>اختاري القاعة والتاريخ والوقت المناسبين</CardDescription>
+              </CardHeader>
+              <CardContent>
+                {/* Date and Time Row */}
+                <div className="grid grid-cols-2 gap-4 mb-5">
+                  <div className="space-y-2">
+                    <Label className="text-sm font-medium">التاريخ <span className="text-red-500">*</span></Label>
+                    <Input
+                      type="date"
+                      value={formData.date}
+                      onChange={e => setFormData(prev => ({ ...prev, date: e.target.value }))}
+                      className="rounded-xl h-11"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label className="text-sm font-medium">الوقت <span className="text-red-500">*</span></Label>
+                    <Select value={formData.timeSlot} onValueChange={v => setFormData(prev => ({ ...prev, timeSlot: v }))}>
+                      <SelectTrigger className="rounded-xl h-11">
+                        <SelectValue placeholder="اختر الوقت" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {TIME_SLOTS.map(slot => (
+                          <SelectItem key={slot} value={slot}>{slot}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
+
+                {/* Room Selection */}
+                {rooms.length > 0 ? (
+                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                    {rooms.map(room => {
+                      const isSelected = selectedRoom === room.id
+                      return (
+                        <motion.button
+                          key={room.id}
+                          whileHover={{ scale: 1.02 }}
+                          whileTap={{ scale: 0.98 }}
+                          onClick={() => {
+                            setSelectedRoom(room.id)
+                            setSelectedSeat(null)
+                          }}
+                          className={`text-right p-5 rounded-2xl border-2 transition-all duration-300 group ${
+                            isSelected
+                              ? 'border-emerald-500 bg-emerald-50 shadow-lg shadow-emerald-100'
+                              : 'border-transparent glass-card hover:border-emerald-200 hover:shadow-md'
+                          }`}
+                        >
+                          <div className="flex items-start gap-3">
+                            <div className={`w-12 h-12 rounded-xl flex items-center justify-center transition-all duration-300 ${
+                              isSelected ? 'bg-emerald-600 shadow-lg' : 'bg-emerald-100 group-hover:bg-emerald-200'
+                            }`}>
+                              <Monitor className={`h-6 w-6 ${isSelected ? 'text-white' : 'text-emerald-600'}`} />
+                            </div>
+                            <div className="flex-1 min-w-0">
+                              <div className="flex items-center gap-2">
+                                <p className="font-bold text-sm">{room.name}</p>
+                                {isSelected && <CheckCircle2 className="h-4 w-4 text-emerald-600" />}
+                              </div>
+                              {room.description && (
+                                <p className="text-xs text-muted-foreground mt-1 line-clamp-2">{room.description}</p>
+                              )}
+                              <div className="flex items-center gap-1.5 mt-2">
+                                <Armchair className="h-3 w-3 text-muted-foreground" />
+                                <span className="text-xs text-muted-foreground font-medium">{room._count.seats} واكر</span>
+                              </div>
+                            </div>
+                          </div>
+                          <div className={`mt-3 h-1 rounded-full transition-all duration-300 ${
+                            isSelected ? 'bg-emerald-500' : 'bg-muted'
+                          }`} />
+                        </motion.button>
+                      )
+                    })}
+                  </div>
+                ) : (
+                  <EmptyState icon={Building2} message="لا توجد قاعات متاحة حالياً" />
+                )}
+
+                <div className="flex justify-end mt-6">
+                  <Button
+                    onClick={() => setCurrentStep(2)}
+                    disabled={!canProceedStep2}
+                    className="bg-emerald-600 hover:bg-emerald-700 rounded-xl px-8 h-11 font-semibold transition-all duration-300 disabled:opacity-40"
+                  >
+                    التالي
+                    <ArrowLeft className="h-4 w-4 mr-2" />
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
+          </motion.div>
+        )}
+
+        {/* ===== STEP 2: Seat Selection ===== */}
+        {currentStep === 2 && (
+          <motion.div key="step2-logged" initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -20 }}>
+            <Card className="glass-card border-0 rounded-2xl overflow-hidden">
+              <CardHeader className="pb-3">
+                <CardTitle className="text-base flex items-center gap-2 font-bold">
+                  <div className="p-1.5 rounded-lg bg-amber-100">
+                    <Armchair className="h-4 w-4 text-amber-600" />
+                  </div>
+                  خريطة الواكرات - {currentRoom?.name}
+                </CardTitle>
+                <CardDescription>اضغطي على الواكر المتاح لحجزه</CardDescription>
+              </CardHeader>
+              <CardContent>
+                {/* Booking Info Summary */}
+                <div className="flex flex-wrap gap-3 mb-5">
+                  <div className="flex items-center gap-1.5 bg-emerald-50 rounded-lg px-3 py-1.5 text-xs font-medium text-emerald-700">
+                    <CalendarDays className="h-3.5 w-3.5" />
+                    {formData.date}
+                  </div>
+                  <div className="flex items-center gap-1.5 bg-teal-50 rounded-lg px-3 py-1.5 text-xs font-medium text-teal-700">
+                    <Clock className="h-3.5 w-3.5" />
+                    {formData.timeSlot}
+                  </div>
+                </div>
+
+                {/* Legend */}
+                <div className="flex flex-wrap gap-4 mb-5">
+                  {[
+                    { status: 'AVAILABLE', label: 'متاح', bgClass: 'bg-emerald-500' },
+                    { status: 'OCCUPIED', label: 'محجوز', bgClass: 'bg-red-400' },
+                    { status: 'MAINTENANCE', label: 'صيانة', bgClass: 'bg-gray-400' },
+                    { status: 'SELECTED', label: 'مختار', bgClass: 'bg-amber-400' }
+                  ].map(item => (
+                    <div key={item.status} className="flex items-center gap-2">
+                      <div className={`w-5 h-5 rounded-md ${item.bgClass} shadow-sm`} />
+                      <span className="text-xs font-medium">{item.label}</span>
+                    </div>
+                  ))}
+                </div>
+
+                {/* Seat Map */}
+                {selectedRoom && seats.length > 0 ? (
+                  <div className="overflow-x-auto custom-scrollbar">
+                    <div className="classroom-stage rounded-2xl px-8 py-3 mb-6 text-center">
+                      <div className="flex items-center justify-center gap-2">
+                        <Monitor className="h-5 w-5 text-emerald-700" />
+                        <span className="text-sm font-bold text-emerald-800">المنصة / الشاشة</span>
+                      </div>
+                    </div>
+
+                    <div className="space-y-3 min-w-[500px] px-4">
+                      {Array.from({ length: maxRow }, (_, i) => i + 1).map(row => {
+                        const rowSeats = seatGrid[row] || []
+                        if (rowSeats.length === 0) return null
+                        const maxCol = Math.max(...rowSeats.map(s => s.column))
+                        const rowArray = Array.from({ length: maxCol }, (_, i) =>
+                          rowSeats.find(s => s.column === i + 1)
+                        )
+                        const half = Math.ceil(maxCol / 2)
+
+                        return (
+                          <div key={row} className="flex items-center gap-3 justify-center">
+                            <span className="text-xs text-muted-foreground font-semibold w-8 text-center">{row}</span>
+                            <div className="flex gap-2">
+                              {rowArray.slice(0, half).map((seat, colIdx) => {
+                                const isSelected = selectedSeat?.id === seat?.id
+                                if (!seat) return <div key={`empty-l-${colIdx}`} className="w-12 h-12" />
+                                return (
+                                  <button
+                                    key={seat.id}
+                                    disabled={seat.status !== 'AVAILABLE'}
+                                    onClick={() => handleSeatClick(seat)}
+                                    className={`seat-btn w-12 h-12 rounded-xl flex items-center justify-center text-xs font-bold text-white relative ${seat.status.toLowerCase()} ${isSelected ? 'selected' : ''}`}
+                                  >
+                                    {seat.seatNumber}
+                                    <div className="seat-tooltip">
+                                      واكر {seat.seatNumber} - {SEAT_STATUS_LABELS[seat.status]}
+                                    </div>
+                                  </button>
+                                )
+                              })}
+                            </div>
+                            <div className="w-6 flex items-center justify-center">
+                              <DoorOpen className="h-3 w-3 text-muted-foreground/30" />
+                            </div>
+                            <div className="flex gap-2">
+                              {rowArray.slice(half).map((seat, colIdx) => {
+                                const isSelected = selectedSeat?.id === seat?.id
+                                if (!seat) return <div key={`empty-r-${colIdx}`} className="w-12 h-12" />
+                                return (
+                                  <button
+                                    key={seat.id}
+                                    disabled={seat.status !== 'AVAILABLE'}
+                                    onClick={() => handleSeatClick(seat)}
+                                    className={`seat-btn w-12 h-12 rounded-xl flex items-center justify-center text-xs font-bold text-white relative ${seat.status.toLowerCase()} ${isSelected ? 'selected' : ''}`}
+                                  >
+                                    {seat.seatNumber}
+                                    <div className="seat-tooltip">
+                                      واكر {seat.seatNumber} - {SEAT_STATUS_LABELS[seat.status]}
+                                    </div>
+                                  </button>
+                                )
+                              })}
+                            </div>
+                            <span className="text-xs text-muted-foreground font-semibold w-8 text-center">{row}</span>
+                          </div>
+                        )
+                      })}
+                    </div>
+
+                    <div className="flex justify-center mt-6">
+                      <div className="bg-muted rounded-b-full px-8 py-1.5 text-xs font-medium text-muted-foreground flex items-center gap-2">
+                        <DoorOpen className="h-3.5 w-3.5" />
+                        باب الدخول
+                      </div>
+                    </div>
+                  </div>
+                ) : (
+                  <EmptyState icon={Armchair} message="لا توجد واكرات في هذه القاعة" />
+                )}
+
+                <div className="flex justify-between mt-6">
+                  <Button
+                    variant="outline"
+                    onClick={() => setCurrentStep(1)}
+                    className="rounded-xl px-6 h-11 font-medium"
+                  >
+                    السابق
+                  </Button>
+                  <Button
+                    onClick={() => {
+                      if (!formData.date || !formData.timeSlot) {
+                        alert('يرجى اختيار التاريخ والوقت')
+                        setCurrentStep(1)
+                        return
+                      }
+                      if (!selectedSeat) {
+                        alert('يرجى اختيار واكر')
+                        return
+                      }
+                      setShowConfirm(true)
+                    }}
+                    disabled={!selectedSeat}
+                    className="bg-emerald-600 hover:bg-emerald-700 rounded-xl px-8 h-11 font-semibold transition-all duration-300 disabled:opacity-40"
+                  >
+                    <CheckCircle2 className="h-4 w-4 ml-2" />
+                    تأكيد الحجز
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* ===== STICKY CTA BOOK BUTTON ===== */}
+      {selectedSeat && currentStep === 2 && (
+        <motion.div
+          initial={{ opacity: 0, y: 30 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="fixed bottom-0 left-0 right-0 z-40 p-4 bg-gradient-to-t from-background via-background/95 to-transparent"
+        >
+          <div className="max-w-7xl mx-auto">
+            <Button
+              onClick={() => {
+                if (!formData.date || !formData.timeSlot) {
+                  alert('يرجى اختيار التاريخ والوقت')
+                  setCurrentStep(1)
+                  return
+                }
+                setShowConfirm(true)
+              }}
+              className="w-full h-14 bg-emerald-600 hover:bg-emerald-700 text-white text-base shadow-xl rounded-2xl font-bold transition-all duration-300 hover:shadow-emerald-200"
+              style={{ boxShadow: '0 0 30px rgba(5, 150, 105, 0.3), 0 10px 40px rgba(5, 150, 105, 0.2)' }}
+            >
+              <Sparkles className="h-5 w-5 ml-2" />
+              حجز واكر {selectedSeat.seatNumber} - {currentRoom?.name}
+            </Button>
+          </div>
+        </motion.div>
+      )}
+
+      {/* ===== CONFIRM DIALOG ===== */}
+      <Dialog open={showConfirm} onOpenChange={setShowConfirm}>
+        <DialogContent className="sm:max-w-md rounded-2xl">
+          <DialogHeader>
+            <DialogTitle className="text-center flex items-center justify-center gap-2 text-lg">
+              <div className="p-2 rounded-full bg-emerald-100">
+                <CheckCircle2 className="h-6 w-6 text-emerald-600" />
+              </div>
+              تأكيد الحجز
+            </DialogTitle>
+            <DialogDescription className="text-center mt-2">
+              تأكدي من صحة بيانات الحجز قبل المتابعة
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-3 py-2">
+            <div className="bg-emerald-50 rounded-2xl p-4 space-y-3 border border-emerald-100">
+              {[
+                { label: 'الطالبة:', value: currentUser!.name },
+                ...(currentUser!.studentId ? [{ label: 'رقم الطالبة:', value: currentUser!.studentId! }] : []),
+                ...(currentUser!.phone ? [{ label: 'رقم الجوال:', value: currentUser!.phone! }] : []),
+                { label: 'القاعة:', value: currentRoom?.name || '' },
+                { label: 'الواكر:', value: `واكر ${selectedSeat?.seatNumber}` },
+                { label: 'التاريخ:', value: formData.date },
+                { label: 'الوقت:', value: formData.timeSlot }
+              ].map((item, idx) => (
+                <div key={idx} className="flex justify-between text-sm">
+                  <span className="text-muted-foreground">{item.label}</span>
+                  <span className="font-semibold">{item.value}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+          <DialogFooter className="gap-2 sm:gap-0">
+            <Button variant="outline" onClick={() => setShowConfirm(false)} className="flex-1 rounded-xl h-11">
+              إلغاء
+            </Button>
+            <Button
+              onClick={handleBooking}
+              disabled={bookingLoading}
+              className="flex-1 bg-emerald-600 hover:bg-emerald-700 rounded-xl h-11 font-semibold"
+            >
+              {bookingLoading ? <RefreshCw className="h-4 w-4 animate-spin" /> : 'تأكيد الحجز'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    </div>
+  )
+}
+
+// ====== GUEST BOOKING FORM COMPONENT ======
+function GuestBookingForm({
+  currentStep,
+  setCurrentStep,
+  formData,
+  setFormData,
+  canProceedStep1,
+  canProceedStep2,
+  canProceedStep3,
+  STEP_LABELS,
+  rooms,
+  selectedRoom,
+  setSelectedRoom,
+  seats,
+  selectedSeat,
+  setSelectedSeat,
+  handleSeatClick,
+  maxRow,
+  seatGrid,
+  currentRoom,
+  showConfirm,
+  setShowConfirm,
+  handleBooking,
+  bookingLoading,
+  successMessage,
+  setSuccessMessage
+}: {
+  currentStep: number
+  setCurrentStep: (step: number) => void
+  formData: { name: string; studentId: string; phone: string; date: string; timeSlot: string }
+  setFormData: React.Dispatch<React.SetStateAction<{ name: string; studentId: string; phone: string; date: string; timeSlot: string }>>
+  canProceedStep1: boolean
+  canProceedStep2: boolean
+  canProceedStep3: boolean
+  STEP_LABELS: { num: number; label: string; icon: React.ElementType }[]
+  rooms: Room[]
+  selectedRoom: string
+  setSelectedRoom: (room: string) => void
+  seats: Seat[]
+  selectedSeat: Seat | null
+  setSelectedSeat: (seat: Seat | null) => void
+  handleSeatClick: (seat: Seat) => void
+  maxRow: number
+  seatGrid: Record<number, Seat[]>
+  currentRoom: Room | undefined
+  showConfirm: boolean
+  setShowConfirm: (show: boolean) => void
+  handleBooking: () => void
+  bookingLoading: boolean
+  successMessage: string | null
+  setSuccessMessage: (msg: string | null) => void
+}) {
+  return (
+    <>
       {/* Success Message */}
       <AnimatePresence>
         {successMessage && (
@@ -936,7 +2026,7 @@ function BookingPage() {
       {/* ===== STEP 1: Student Info ===== */}
       <AnimatePresence mode="wait">
         {currentStep === 1 && (
-          <motion.div key="step1" initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -20 }}>
+          <motion.div key="step1-guest" initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -20 }}>
             <Card className="glass-card border-0 rounded-2xl overflow-hidden">
               <CardHeader className="pb-3">
                 <CardTitle className="text-base flex items-center gap-2 font-bold">
@@ -1018,16 +2108,16 @@ function BookingPage() {
 
         {/* ===== STEP 2: Room Selection (Radio Cards) ===== */}
         {currentStep === 2 && (
-          <motion.div key="step2" initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -20 }}>
+          <motion.div key="step2-guest" initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -20 }}>
             <Card className="glass-card border-0 rounded-2xl overflow-hidden">
               <CardHeader className="pb-3">
                 <CardTitle className="text-base flex items-center gap-2 font-bold">
                   <div className="p-1.5 rounded-lg bg-teal-100">
                     <Building2 className="h-4 w-4 text-teal-600" />
                   </div>
-                  اختيار المنطقة
+                  اختيار القاعة
                 </CardTitle>
-                <CardDescription>اختاري المنطقة المناسبة لحجز لوكركِ</CardDescription>
+                <CardDescription>اختاري القاعة المناسبة لحجز واكركِ</CardDescription>
               </CardHeader>
               <CardContent>
                 {rooms.length > 0 ? (
@@ -1041,7 +2131,7 @@ function BookingPage() {
                           whileTap={{ scale: 0.98 }}
                           onClick={() => {
                             setSelectedRoom(room.id)
-                            setSelectedLocker(null)
+                            setSelectedSeat(null)
                           }}
                           className={`text-right p-5 rounded-2xl border-2 transition-all duration-300 group ${
                             isSelected
@@ -1064,12 +2154,11 @@ function BookingPage() {
                                 <p className="text-xs text-muted-foreground mt-1 line-clamp-2">{room.description}</p>
                               )}
                               <div className="flex items-center gap-1.5 mt-2">
-                                <Box className="h-3 w-3 text-muted-foreground" />
-                                <span className="text-xs text-muted-foreground font-medium">{room._count.lockers} لوكر</span>
+                                <Armchair className="h-3 w-3 text-muted-foreground" />
+                                <span className="text-xs text-muted-foreground font-medium">{room._count.seats} واكر</span>
                               </div>
                             </div>
                           </div>
-                          {/* Radio indicator */}
                           <div className={`mt-3 h-1 rounded-full transition-all duration-300 ${
                             isSelected ? 'bg-emerald-500' : 'bg-muted'
                           }`} />
@@ -1105,19 +2194,18 @@ function BookingPage() {
 
         {/* ===== STEP 3: Seat Selection ===== */}
         {currentStep === 3 && (
-          <motion.div key="step3" initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -20 }}>
+          <motion.div key="step3-guest" initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -20 }}>
             <Card className="glass-card border-0 rounded-2xl overflow-hidden">
               <CardHeader className="pb-3">
                 <CardTitle className="text-base flex items-center gap-2 font-bold">
                   <div className="p-1.5 rounded-lg bg-amber-100">
-                    <Box className="h-4 w-4 text-amber-600" />
+                    <Armchair className="h-4 w-4 text-amber-600" />
                   </div>
-                  خريطة اللواكر - {currentRoom?.name}
+                  خريطة الواكرات - {currentRoom?.name}
                 </CardTitle>
-                <CardDescription>اضغطي على اللوكر المتاح لحجزه</CardDescription>
+                <CardDescription>اضغطي على الواكر المتاح لحجزه</CardDescription>
               </CardHeader>
               <CardContent>
-                {/* Legend */}
                 <div className="flex flex-wrap gap-4 mb-5">
                   {[
                     { status: 'AVAILABLE', label: 'متاح', bgClass: 'bg-emerald-500' },
@@ -1132,10 +2220,8 @@ function BookingPage() {
                   ))}
                 </div>
 
-                {/* Locker Map */}
-                {selectedRoom && lockers.length > 0 ? (
+                {selectedRoom && seats.length > 0 ? (
                   <div className="overflow-x-auto custom-scrollbar">
-                    {/* Stage */}
                     <div className="classroom-stage rounded-2xl px-8 py-3 mb-6 text-center">
                       <div className="flex items-center justify-center gap-2">
                         <Monitor className="h-5 w-5 text-emerald-700" />
@@ -1143,14 +2229,13 @@ function BookingPage() {
                       </div>
                     </div>
 
-                    {/* Lockers Grid */}
                     <div className="space-y-3 min-w-[500px] px-4">
                       {Array.from({ length: maxRow }, (_, i) => i + 1).map(row => {
-                        const rowLockers = lockerGrid[row] || []
-                        if (rowLockers.length === 0) return null
-                        const maxCol = Math.max(...rowLockers.map(s => s.column))
+                        const rowSeats = seatGrid[row] || []
+                        if (rowSeats.length === 0) return null
+                        const maxCol = Math.max(...rowSeats.map(s => s.column))
                         const rowArray = Array.from({ length: maxCol }, (_, i) =>
-                          rowLockers.find(s => s.column === i + 1)
+                          rowSeats.find(s => s.column === i + 1)
                         )
                         const half = Math.ceil(maxCol / 2)
 
@@ -1158,44 +2243,41 @@ function BookingPage() {
                           <div key={row} className="flex items-center gap-3 justify-center">
                             <span className="text-xs text-muted-foreground font-semibold w-8 text-center">{row}</span>
                             <div className="flex gap-2">
-                              {/* Left side */}
-                              {rowArray.slice(0, half).map((locker, colIdx) => {
-                                const isSelected = selectedLocker?.id === locker?.id
-                                if (!locker) return <div key={`empty-l-${colIdx}`} className="w-12 h-12" />
+                              {rowArray.slice(0, half).map((seat, colIdx) => {
+                                const isSelected = selectedSeat?.id === seat?.id
+                                if (!seat) return <div key={`empty-l-${colIdx}`} className="w-12 h-12" />
                                 return (
                                   <button
-                                    key={locker.id}
-                                    disabled={locker.status !== 'AVAILABLE'}
-                                    onClick={() => handleLockerClick(locker)}
-                                    className={`locker-btn w-12 h-12 rounded-xl flex items-center justify-center text-xs font-bold text-white relative ${locker.status.toLowerCase()} ${isSelected ? 'selected' : ''}`}
+                                    key={seat.id}
+                                    disabled={seat.status !== 'AVAILABLE'}
+                                    onClick={() => handleSeatClick(seat)}
+                                    className={`seat-btn w-12 h-12 rounded-xl flex items-center justify-center text-xs font-bold text-white relative ${seat.status.toLowerCase()} ${isSelected ? 'selected' : ''}`}
                                   >
-                                    {locker.lockerNumber}
-                                    <div className="locker-tooltip">
-                                      لوكر {locker.lockerNumber} - {LOCKER_STATUS_LABELS[locker.status]}
+                                    {seat.seatNumber}
+                                    <div className="seat-tooltip">
+                                      واكر {seat.seatNumber} - {SEAT_STATUS_LABELS[seat.status]}
                                     </div>
                                   </button>
                                 )
                               })}
                             </div>
-                            {/* Aisle */}
                             <div className="w-6 flex items-center justify-center">
                               <DoorOpen className="h-3 w-3 text-muted-foreground/30" />
                             </div>
                             <div className="flex gap-2">
-                              {/* Right side */}
-                              {rowArray.slice(half).map((locker, colIdx) => {
-                                const isSelected = selectedLocker?.id === locker?.id
-                                if (!locker) return <div key={`empty-r-${colIdx}`} className="w-12 h-12" />
+                              {rowArray.slice(half).map((seat, colIdx) => {
+                                const isSelected = selectedSeat?.id === seat?.id
+                                if (!seat) return <div key={`empty-r-${colIdx}`} className="w-12 h-12" />
                                 return (
                                   <button
-                                    key={locker.id}
-                                    disabled={locker.status !== 'AVAILABLE'}
-                                    onClick={() => handleLockerClick(locker)}
-                                    className={`locker-btn w-12 h-12 rounded-xl flex items-center justify-center text-xs font-bold text-white relative ${locker.status.toLowerCase()} ${isSelected ? 'selected' : ''}`}
+                                    key={seat.id}
+                                    disabled={seat.status !== 'AVAILABLE'}
+                                    onClick={() => handleSeatClick(seat)}
+                                    className={`seat-btn w-12 h-12 rounded-xl flex items-center justify-center text-xs font-bold text-white relative ${seat.status.toLowerCase()} ${isSelected ? 'selected' : ''}`}
                                   >
-                                    {locker.lockerNumber}
-                                    <div className="locker-tooltip">
-                                      لوكر {locker.lockerNumber} - {LOCKER_STATUS_LABELS[locker.status]}
+                                    {seat.seatNumber}
+                                    <div className="seat-tooltip">
+                                      واكر {seat.seatNumber} - {SEAT_STATUS_LABELS[seat.status]}
                                     </div>
                                   </button>
                                 )
@@ -1207,7 +2289,6 @@ function BookingPage() {
                       })}
                     </div>
 
-                    {/* Back */}
                     <div className="flex justify-center mt-6">
                       <div className="bg-muted rounded-b-full px-8 py-1.5 text-xs font-medium text-muted-foreground flex items-center gap-2">
                         <DoorOpen className="h-3.5 w-3.5" />
@@ -1216,7 +2297,7 @@ function BookingPage() {
                     </div>
                   </div>
                 ) : (
-                  <EmptyState icon={Box} message="لا توجد لواكر في هذه المنطقة" />
+                  <EmptyState icon={Armchair} message="لا توجد واكرات في هذه القاعة" />
                 )}
 
                 <div className="flex justify-between mt-6">
@@ -1234,13 +2315,13 @@ function BookingPage() {
                         setCurrentStep(1)
                         return
                       }
-                      if (!selectedLocker) {
-                        alert('يرجى اختيار لوكر')
+                      if (!selectedSeat) {
+                        alert('يرجى اختيار واكر')
                         return
                       }
                       setShowConfirm(true)
                     }}
-                    disabled={!selectedLocker}
+                    disabled={!selectedSeat}
                     className="bg-emerald-600 hover:bg-emerald-700 rounded-xl px-8 h-11 font-semibold transition-all duration-300 disabled:opacity-40"
                   >
                     <CheckCircle2 className="h-4 w-4 ml-2" />
@@ -1254,7 +2335,7 @@ function BookingPage() {
       </AnimatePresence>
 
       {/* ===== STICKY CTA BOOK BUTTON ===== */}
-      {selectedLocker && currentStep === 3 && (
+      {selectedSeat && currentStep === 3 && (
         <motion.div
           initial={{ opacity: 0, y: 30 }}
           animate={{ opacity: 1, y: 0 }}
@@ -1274,7 +2355,7 @@ function BookingPage() {
               style={{ boxShadow: '0 0 30px rgba(5, 150, 105, 0.3), 0 10px 40px rgba(5, 150, 105, 0.2)' }}
             >
               <Sparkles className="h-5 w-5 ml-2" />
-              حجز لوكر {selectedLocker?.lockerNumber} - {currentRoom?.name}
+              حجز واكر {selectedSeat.seatNumber} - {currentRoom?.name}
             </Button>
           </div>
         </motion.div>
@@ -1300,8 +2381,8 @@ function BookingPage() {
                 { label: 'الطالبة:', value: formData.name },
                 ...(formData.studentId ? [{ label: 'رقم الطالبة:', value: formData.studentId }] : []),
                 ...(formData.phone ? [{ label: 'رقم الجوال:', value: formData.phone }] : []),
-                { label: 'المنطقة:', value: currentRoom?.name || '' },
-                { label: 'اللوكر:', value: `لوكر ${selectedLocker?.lockerNumber}` },
+                { label: 'القاعة:', value: currentRoom?.name || '' },
+                { label: 'الواكر:', value: `واكر ${selectedSeat?.seatNumber}` },
                 { label: 'التاريخ:', value: formData.date },
                 { label: 'الوقت:', value: formData.timeSlot }
               ].map((item, idx) => (
@@ -1326,19 +2407,37 @@ function BookingPage() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
-    </div>
+    </>
   )
 }
 
 // ====== MY BOOKINGS PAGE ======
-function MyBookingsPage() {
+function MyBookingsPage({
+  currentUser,
+  token,
+  onOpenAuthModal
+}: {
+  currentUser: CurrentUser | null
+  token: string | null
+  onOpenAuthModal: () => void
+}) {
   const [bookings, setBookings] = useState<Booking[]>([])
   const [loading, setLoading] = useState(true)
   const [statusFilter, setStatusFilter] = useState('ALL')
 
+  const isLoggedIn = !!currentUser && !!token
+
   const fetchBookings = useCallback(async () => {
     try {
-      const res = await fetch(`/api/bookings${statusFilter !== 'ALL' ? `?status=${statusFilter}` : ''}`)
+      const params = new URLSearchParams()
+      if (isLoggedIn && currentUser) {
+        params.set('userId', currentUser.id)
+      }
+      if (statusFilter !== 'ALL') {
+        params.set('status', statusFilter)
+      }
+      const query = params.toString() ? `?${params.toString()}` : ''
+      const res = await fetch(`/api/bookings${query}`)
       if (res.ok) {
         const data = await res.json()
         setBookings(data)
@@ -1348,7 +2447,7 @@ function MyBookingsPage() {
     } finally {
       setLoading(false)
     }
-  }, [statusFilter])
+  }, [statusFilter, isLoggedIn, currentUser])
 
   useEffect(() => {
     fetchBookings()
@@ -1356,7 +2455,14 @@ function MyBookingsPage() {
 
   const handleCancelBooking = async (bookingId: string) => {
     try {
-      const res = await fetch(`/api/bookings/${bookingId}`, { method: 'DELETE' })
+      const headers: Record<string, string> = {}
+      if (token) {
+        headers['Authorization'] = `Bearer ${token}`
+      }
+      const res = await fetch(`/api/bookings/${bookingId}`, {
+        method: 'DELETE',
+        headers
+      })
       if (res.ok) {
         fetchBookings()
       } else {
@@ -1369,6 +2475,37 @@ function MyBookingsPage() {
 
   if (loading) return <BookingsPageSkeleton />
 
+  // Not logged in - show login prompt
+  if (!isLoggedIn) {
+    return (
+      <div className="space-y-6">
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+        >
+          <Card className="glass-card border-0 rounded-2xl overflow-hidden">
+            <CardContent className="p-8 text-center">
+              <div className="w-20 h-20 rounded-2xl bg-emerald-100 flex items-center justify-center mx-auto mb-4">
+                <CalendarDays className="h-10 w-10 text-emerald-600" />
+              </div>
+              <h3 className="text-lg font-bold mb-2">سجّلي دخولكِ لعرض حجوزاتكِ</h3>
+              <p className="text-sm text-muted-foreground mb-6 max-w-md mx-auto">
+                يمكنكِ عرض وإدارة حجوزاتكِ السابقة بعد تسجيل الدخول إلى حسابكِ.
+              </p>
+              <Button
+                onClick={onOpenAuthModal}
+                className="bg-emerald-600 hover:bg-emerald-700 rounded-xl px-6 h-11 font-semibold transition-all duration-300 shadow-lg shadow-emerald-200"
+              >
+                <LogIn className="h-4 w-4 ml-2" />
+                تسجيل الدخول
+              </Button>
+            </CardContent>
+          </Card>
+        </motion.div>
+      </div>
+    )
+  }
+
   return (
     <div className="space-y-6">
       {/* Header */}
@@ -1378,9 +2515,9 @@ function MyBookingsPage() {
             <div className="p-1.5 rounded-lg bg-emerald-100">
               <CalendarDays className="h-5 w-5 text-emerald-600" />
             </div>
-            جميع الحجوزات
+            حجوزاتي
           </h2>
-          <p className="text-sm text-muted-foreground mt-1">عرض وإدارة جميع الحجوزات المسجلة</p>
+          <p className="text-sm text-muted-foreground mt-1">عرض وإدارة حجوزاتكِ المسجلة</p>
         </div>
       </div>
 
@@ -1441,10 +2578,10 @@ function MyBookingsPage() {
                 <div className="space-y-2 flex-1">
                   <div className="flex items-center gap-2 text-xs">
                     <Building2 className="h-3.5 w-3.5 text-muted-foreground" />
-                    <span className="font-medium">{booking.locker.room.name}</span>
+                    <span className="font-medium">{booking.seat.room.name}</span>
                     <span className="text-muted-foreground">-</span>
-                    <Box className="h-3.5 w-3.5 text-muted-foreground" />
-                    <span className="font-medium">لوكر {booking.locker.lockerNumber}</span>
+                    <Armchair className="h-3.5 w-3.5 text-muted-foreground" />
+                    <span className="font-medium">واكر {booking.seat.seatNumber}</span>
                   </div>
                   <div className="flex items-center gap-2 text-xs">
                     <CalendarDays className="h-3.5 w-3.5 text-muted-foreground" />
@@ -1635,10 +2772,10 @@ function DashboardPage() {
       {/* ===== QUICK STATS ===== */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
         {[
-          { label: 'المناطق', value: stats?.totalRooms || 0, icon: Building2, color: 'bg-emerald-600' },
+          { label: 'القاعات', value: stats?.totalRooms || 0, icon: Building2, color: 'bg-emerald-600' },
           { label: 'إجمالي الحجوزات', value: stats?.totalBookings || 0, icon: CalendarDays, color: 'bg-teal-600' },
           { label: 'حجوزات قيد الانتظار', value: stats?.pendingBookings || 0, icon: Clock, color: 'bg-amber-500' },
-          { label: 'الطالبات', value: stats?.totalUsers || 0, icon: Users, color: 'bg-rose-500' }
+          { label: 'المستخدمات', value: stats?.totalUsers || 0, icon: Users, color: 'bg-rose-500' }
         ].map((card, idx) => {
           const Icon = card.icon
           return (
@@ -1706,7 +2843,7 @@ function DashboardPage() {
               <div className="p-1.5 rounded-lg bg-teal-100">
                 <BarChart3 className="h-4 w-4 text-teal-600" />
               </div>
-              حجوزات حسب المنطقة
+              حجوزات حسب القاعة
             </CardTitle>
           </CardHeader>
           <CardContent>
@@ -1765,10 +2902,6 @@ function DashboardPage() {
           {rooms.length > 0 ? (
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
               {rooms.map(room => {
-                const roomSeats = seats => {
-                  // We'll show a generic indicator since we don't have seat status per room here
-                  return room._count.seats
-                }
                 return (
                   <motion.div
                     key={room.id}
@@ -1800,7 +2933,7 @@ function DashboardPage() {
                               حذف القاعة
                             </AlertDialogTitle>
                             <AlertDialogDescription>
-                              هل أنتِ متأكدة من حذف &quot;{room.name}&quot;؟ سيتم حذف جميع اللواكر والحجوزات المرتبطة.
+                              هل أنتِ متأكدة من حذف &quot;{room.name}&quot;؟ سيتم حذف جميع الواكرات والحجوزات المرتبطة.
                             </AlertDialogDescription>
                           </AlertDialogHeader>
                           <AlertDialogFooter className="gap-2">
@@ -1816,8 +2949,8 @@ function DashboardPage() {
                       </AlertDialog>
                     </div>
                     <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                      <Box className="h-3.5 w-3.5" />
-                      <span className="font-medium">{room._count.lockers} لوكر</span>
+                      <Armchair className="h-3.5 w-3.5" />
+                      <span className="font-medium">{room._count.seats} واكر</span>
                       <Separator orientation="vertical" className="h-3 mx-1" />
                       <span>السعة: {room.capacity}</span>
                     </div>
@@ -1849,8 +2982,8 @@ function DashboardPage() {
                 <TableHeader className="sticky top-0 bg-card z-10">
                   <TableRow>
                     <TableHead className="text-xs">الطالبة</TableHead>
-                    <TableHead className="text-xs">المنطقة</TableHead>
-                    <TableHead className="text-xs">اللوكر</TableHead>
+                    <TableHead className="text-xs">القاعة</TableHead>
+                    <TableHead className="text-xs">الواكر</TableHead>
                     <TableHead className="text-xs">التاريخ</TableHead>
                     <TableHead className="text-xs">الوقت</TableHead>
                     <TableHead className="text-xs">الحالة</TableHead>
@@ -1868,8 +3001,8 @@ function DashboardPage() {
                           )}
                         </div>
                       </TableCell>
-                      <TableCell className="text-xs">{booking.locker.room.name}</TableCell>
-                      <TableCell className="text-xs font-mono">لوكر {booking.locker.lockerNumber}</TableCell>
+                      <TableCell className="text-xs">{booking.seat.room.name}</TableCell>
+                      <TableCell className="text-xs font-mono">واكر {booking.seat.seatNumber}</TableCell>
                       <TableCell className="text-xs">{booking.date}</TableCell>
                       <TableCell className="text-xs">{booking.timeSlot}</TableCell>
                       <TableCell><StatusBadge status={booking.status} /></TableCell>
@@ -1942,7 +3075,7 @@ function DashboardPage() {
               />
             </div>
             <div className="space-y-2">
-              <Label className="text-sm font-medium">السعة (عدد المقاعد)</Label>
+              <Label className="text-sm font-medium">السعة (عدد الواكرات)</Label>
               <Input
                 type="number"
                 placeholder="40"
@@ -1961,7 +3094,7 @@ function DashboardPage() {
               disabled={!newRoomName.trim()}
               className="flex-1 bg-emerald-600 hover:bg-emerald-700 rounded-xl h-11 font-semibold"
             >
-              إضافة المنطقة
+              إضافة القاعة
             </Button>
           </DialogFooter>
         </DialogContent>

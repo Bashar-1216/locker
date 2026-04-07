@@ -3,10 +3,10 @@ import { NextResponse } from 'next/server'
 
 export async function GET() {
   try {
-    const totalLockers = await db.locker.count()
-    const availableLockers = await db.locker.count({ where: { status: 'AVAILABLE' } })
-    const occupiedLockers = await db.locker.count({ where: { status: 'OCCUPIED' } })
-    const maintenanceLockers = await db.locker.count({ where: { status: 'MAINTENANCE' } })
+    const totalSeats = await db.seat.count()
+    const availableSeats = await db.seat.count({ where: { status: 'AVAILABLE' } })
+    const occupiedSeats = await db.seat.count({ where: { status: 'OCCUPIED' } })
+    const maintenanceSeats = await db.seat.count({ where: { status: 'MAINTENANCE' } })
     const totalRooms = await db.room.count()
     const totalBookings = await db.booking.count()
     const confirmedBookings = await db.booking.count({ where: { status: 'CONFIRMED' } })
@@ -14,7 +14,7 @@ export async function GET() {
     const cancelledBookings = await db.booking.count({ where: { status: 'CANCELLED' } })
     const totalUsers = await db.user.count()
 
-    const occupancyRate = totalLockers > 0 ? Math.round((occupiedLockers / totalLockers) * 100) : 0
+    const occupancyRate = totalSeats > 0 ? Math.round((occupiedSeats / totalSeats) * 100) : 0
 
     // Daily bookings for the last 7 days
     const today = new Date()
@@ -35,15 +35,15 @@ export async function GET() {
       orderBy: { createdAt: 'desc' },
       include: {
         user: true,
-        locker: { include: { room: true } }
+        seat: { include: { room: true } }
       }
     })
 
     // Bookings by room
     const rooms = await db.room.findMany({
       include: {
-        _count: { select: { lockers: true } },
-        lockers: {
+        _count: { select: { seats: true } },
+        seats: {
           include: {
             _count: { select: { bookings: true } }
           }
@@ -52,14 +52,14 @@ export async function GET() {
     })
     const bookingsByRoom = rooms.map(room => ({
       name: room.name,
-      bookings: room.lockers.reduce((acc, locker) => acc + locker._count.bookings, 0)
+      bookings: room.seats.reduce((acc, seat) => acc + seat._count.bookings, 0)
     }))
 
     return NextResponse.json({
-      totalLockers,
-      availableLockers,
-      occupiedLockers,
-      maintenanceLockers,
+      totalSeats,
+      availableSeats,
+      occupiedSeats,
+      maintenanceSeats,
       totalRooms,
       totalBookings,
       confirmedBookings,

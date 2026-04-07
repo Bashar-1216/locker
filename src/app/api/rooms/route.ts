@@ -6,7 +6,7 @@ export async function GET() {
     const rooms = await db.room.findMany({
       include: {
         _count: {
-          select: { lockers: true }
+          select: { seats: true }
         }
       },
       orderBy: { createdAt: 'asc' }
