@@ -514,7 +514,6 @@ function AuthModal({
                   value={loginEmail}
                   onChange={e => { setLoginEmail(e.target.value); setError(null) }}
                   className="rounded-xl h-11 focus:ring-emerald-300"
-                  dir="ltr"
                   required
                 />
               </div>
@@ -530,7 +529,6 @@ function AuthModal({
                     value={loginPassword}
                     onChange={e => { setLoginPassword(e.target.value); setError(null) }}
                     className="rounded-xl h-11 focus:ring-emerald-300 pl-10"
-                    dir="ltr"
                     required
                   />
                   <button
@@ -593,7 +591,6 @@ function AuthModal({
                   value={regEmail}
                   onChange={e => { setRegEmail(e.target.value); setError(null) }}
                   className="rounded-xl h-11 focus:ring-emerald-300"
-                  dir="ltr"
                   required
                 />
               </div>
@@ -605,7 +602,6 @@ function AuthModal({
                     value={regStudentId}
                     onChange={e => { setRegStudentId(e.target.value); setError(null) }}
                     className="rounded-xl h-11 focus:ring-emerald-300"
-                    dir="ltr"
                   />
                 </div>
                 <div className="space-y-2">
@@ -615,7 +611,6 @@ function AuthModal({
                     value={regPhone}
                     onChange={e => { setRegPhone(e.target.value); setError(null) }}
                     className="rounded-xl h-11 focus:ring-emerald-300"
-                    dir="ltr"
                   />
                 </div>
               </div>
@@ -632,7 +627,6 @@ function AuthModal({
                     value={regPassword}
                     onChange={e => { setRegPassword(e.target.value); setError(null) }}
                     className="rounded-xl h-11 focus:ring-emerald-300 pl-10"
-                    dir="ltr"
                     required
                     minLength={6}
                   />
@@ -657,7 +651,6 @@ function AuthModal({
                     value={regConfirmPassword}
                     onChange={e => { setRegConfirmPassword(e.target.value); setError(null) }}
                     className="rounded-xl h-11 focus:ring-emerald-300 pl-10"
-                    dir="ltr"
                     required
                   />
                   <button
