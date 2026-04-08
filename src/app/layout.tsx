@@ -14,8 +14,8 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "نظام حجز الواكرات",
-  description: "نظام إلكتروني متكامل لحجز وإدارة الواكرات",
+  title: "حصين لحجز لواكر",
+  description: "نظام حصين المتقدم لحجز وإدارة اللواكر (الخزائن) الإلكترونية",
 };
 
 export default function RootLayout({

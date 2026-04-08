@@ -477,7 +477,7 @@ function AuthModal({
             <p className="text-emerald-100 text-xs mt-1">
               {authMode === 'login'
                 ? 'أدخلي بياناتكِ للوصول إلى حسابكِ'
-                : 'أنشئي حسابكِ في نظام حجز الواكرات'}
+                : 'أنشئي حسابكِ في نظام حصين لحجز اللواكر'}
             </p>
           </motion.div>
         </div>
@@ -766,7 +766,7 @@ export default function SeatBookingApp() {
                 <GraduationCap className="h-6 w-6 text-white" />
               </div>
               <div>
-                <h1 className="text-xl font-bold leading-tight tracking-tight">نظام حجز الواكرات</h1>
+                <h1 className="text-xl font-bold leading-tight tracking-tight">حصين لحجز لواكر</h1>
                 <p className="text-[11px] text-emerald-100 font-medium">الكليه التقنيه</p>
               </div>
             </div>
@@ -889,9 +889,9 @@ export default function SeatBookingApp() {
           <div className="flex flex-col sm:flex-row items-center justify-between gap-3 text-xs text-muted-foreground">
             <div className="flex items-center gap-2">
               <Building2 className="h-4 w-4 text-emerald-600" />
-              <span className="font-medium">نظام حجز الواكرات</span>
+              <span className="font-medium">حصين لحجز لواكر</span>
             </div>
-            <p className="text-center">نظام حجز الواكرات الإلكتروني &copy; {new Date().getFullYear()}</p>
+            <p className="text-center">نظام حصين لحجز لواكر الإلكتروني &copy; {new Date().getFullYear()}</p>
             <div className="flex items-center gap-1.5">
               <BookOpen className="h-3.5 w-3.5 text-emerald-600" />
               <span>المؤسسة العامة للتدريب التقني والمهني</span>
@@ -969,7 +969,7 @@ function HomePage({ onTabChange }: { onTabChange: (v: string) => void }) {
               <GraduationCap className="h-7 w-7" />
             </div>
             <div>
-              <h2 className="text-2xl font-bold leading-tight">مرحباً بكِ في نظام حجز الواكرات</h2>
+              <h2 className="text-2xl font-bold leading-tight">مرحباً بكِ في نظام حصين لحجز لواكر</h2>
               <p className="text-emerald-100 text-sm font-medium">الكليه التقنيه</p>
             </div>
           </div>
