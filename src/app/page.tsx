@@ -789,6 +789,20 @@ function RatingSystem({ currentUser }: { currentUser: CurrentUser | null }) {
     }
   }
 
+  if (!currentUser) {
+    return (
+      <Card className="glass-card border-0 rounded-2xl p-6 text-center mt-8 bg-emerald-50/50 border-dashed border-2 border-emerald-200">
+        <div className="flex flex-col items-center gap-2">
+          <div className="p-3 rounded-full bg-emerald-100 text-emerald-600">
+            <LogIn className="h-6 w-6" />
+          </div>
+          <h3 className="font-bold text-emerald-900">شاركينا رأيكِ!</h3>
+          <p className="text-xs text-emerald-600 mb-4">يرجى تسجيل الدخول لتتمكني من تقييم تجربتكِ والمساعدة في تحسين النظام.</p>
+        </div>
+      </Card>
+    )
+  }
+
   if (submitted) {
     return (
       <Card className="glass-card border-0 rounded-2xl p-8 text-center mt-8 bg-gradient-to-br from-emerald-50 to-teal-50">
