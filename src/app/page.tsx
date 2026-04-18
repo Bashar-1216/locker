@@ -36,7 +36,7 @@ import {
   Armchair, AlertTriangle, LayoutDashboard, BookOpen, GraduationCap,
   ArrowLeft, Sparkles, Monitor, DoorOpen, Zap, UserCheck, ChevronLeft, Wrench,
   LogIn, LogOut, UserPlus, Eye, EyeOff, Mail, Lock, User,
-  MessageSquare, Star, Send, Twitter, ChevronDown, MapPin, MessageCircle, Heart
+  MessageSquare, Star, Send, Twitter, ChevronDown, MapPin, MessageCircle, Heart, Globe
 } from 'lucide-react'
 
 // ====== Types ======
