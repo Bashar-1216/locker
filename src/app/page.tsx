@@ -36,7 +36,8 @@ import {
   Armchair, AlertTriangle, LayoutDashboard, BookOpen, GraduationCap,
   ArrowLeft, Sparkles, Monitor, DoorOpen, Zap, UserCheck, ChevronLeft, Wrench,
   LogIn, LogOut, UserPlus, Eye, EyeOff, Mail, Lock, User,
-  MessageSquare, Star, Send, ChevronDown, MapPin, MessageCircle, Heart, Globe
+  MessageSquare, Star, Send, ChevronDown, MapPin, MessageCircle, Heart, Globe,
+  Crown, UserMinus
 } from 'lucide-react'
 
 // ====== Types ======
@@ -1288,7 +1289,7 @@ export default function SeatBookingApp() {
                 />
               </TabsContent>
               <TabsContent value="dashboard" className="mt-0">
-                <DashboardPage />
+                <DashboardPage currentUser={currentUser} token={token} />
               </TabsContent>
             </motion.div>
           </AnimatePresence>
@@ -3106,12 +3107,14 @@ function MyBookingsPage({
 }
 
 // ====== DASHBOARD PAGE ======
-function DashboardPage() {
+function DashboardPage({ currentUser, token }: { currentUser: CurrentUser | null, token: string | null }) {
   const [stats, setStats] = useState<Stats | null>(null)
   const [rooms, setRooms] = useState<Room[]>([])
   const [bookings, setBookings] = useState<Booking[]>([])
+  const [users, setUsers] = useState<CurrentUser[]>([])
   const [loading, setLoading] = useState(true)
   const [seedLoading, setSeedLoading] = useState(false)
+  const [roleLoading, setRoleLoading] = useState<string | null>(null)
 
   // Room management
   const [showAddRoom, setShowAddRoom] = useState(false)
@@ -3121,20 +3124,23 @@ function DashboardPage() {
 
   const fetchAll = useCallback(async () => {
     try {
-      const [statsRes, roomsRes, bookingsRes] = await Promise.all([
+      const headers = token ? { 'Authorization': `Bearer ${token}` } : {}
+      const [statsRes, roomsRes, bookingsRes, usersRes] = await Promise.all([
         fetch('/api/stats'),
         fetch('/api/rooms'),
-        fetch('/api/bookings')
+        fetch('/api/bookings'),
+        fetch('/api/users', { headers })
       ])
       if (statsRes.ok) setStats(await statsRes.json())
       if (roomsRes.ok) setRooms(await roomsRes.json())
       if (bookingsRes.ok) setBookings(await bookingsRes.json())
+      if (usersRes.ok) setUsers(await usersRes.json())
     } catch (err) {
       console.error('Error fetching data:', err)
     } finally {
       setLoading(false)
     }
-  }, [])
+  }, [token])
 
   useEffect(() => {
     fetchAll()
@@ -3184,6 +3190,31 @@ function DashboardPage() {
       if (res.ok) fetchAll()
     } catch (err) {
       console.error('Delete room error:', err)
+    }
+  }
+
+  const handleUpdateRole = async (targetUserId: string, newRole: string) => {
+    if (!token) return
+    setRoleLoading(targetUserId)
+    try {
+      const res = await fetch(`/api/users/${targetUserId}`, {
+        method: 'PUT',
+        headers: { 
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({ role: newRole })
+      })
+      if (res.ok) {
+        fetchAll()
+      } else {
+        const err = await res.json()
+        alert(err.error || 'فشل في تحديث الصلاحية')
+      }
+    } catch {
+      alert('خطأ في الاتصال')
+    } finally {
+      setRoleLoading(null)
     }
   }
 
@@ -3504,6 +3535,102 @@ function DashboardPage() {
             </div>
           ) : (
             <EmptyState icon={CalendarDays} message="لا توجد حجوزات" />
+          )}
+        </CardContent>
+      </Card>
+
+      {/* ===== USERS MANAGEMENT ===== */}
+      <Card className="glass-card border-0 rounded-2xl overflow-hidden mt-6">
+        <CardHeader className="pb-3">
+          <div className="flex items-center justify-between">
+            <CardTitle className="text-base flex items-center gap-2 font-bold">
+              <div className="p-1.5 rounded-lg bg-rose-100">
+                <Users className="h-4 w-4 text-rose-600" />
+              </div>
+              إدارة شؤون المشرفات والصلاحيات
+            </CardTitle>
+          </div>
+          <CardDescription>قائمة بجميع المستخدمات وإدارة أدوارهن في النظام</CardDescription>
+        </CardHeader>
+        <CardContent>
+          {users.length > 0 ? (
+            <div className="overflow-x-auto custom-scrollbar max-h-96 overflow-y-auto rounded-xl border">
+              <Table>
+                <TableHeader className="sticky top-0 bg-card z-10">
+                  <TableRow>
+                    <TableHead className="text-xs">المستخدمة</TableHead>
+                    <TableHead className="text-xs">البريد / الجوال</TableHead>
+                    <TableHead className="text-xs">تاريخ التسجيل</TableHead>
+                    <TableHead className="text-xs">الرتبة الحالية</TableHead>
+                    <TableHead className="text-xs text-center">إدارة الصلاحية</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {users.map((user) => (
+                    <TableRow key={user.id} className="hover:bg-rose-50/30 transition-colors">
+                      <TableCell className="text-xs font-medium">
+                        <div className="flex items-center gap-2">
+                          <div className={`w-8 h-8 rounded-full flex items-center justify-center text-[10px] font-bold ${user.role === 'ADMIN' ? 'bg-amber-100 text-amber-600' : 'bg-slate-100'}`}>
+                            {user.name.charAt(0)}
+                          </div>
+                          <div>
+                            <p className="flex items-center gap-1">
+                              {user.name}
+                              {user.role === 'ADMIN' && <Crown className="h-3 w-3 text-amber-500" />}
+                            </p>
+                            {user.studentId && <p className="text-[9px] text-muted-foreground font-mono">#{user.studentId}</p>}
+                          </div>
+                        </div>
+                      </TableCell>
+                      <TableCell className="text-xs">{user.email || user.phone || '---'}</TableCell>
+                      <TableCell className="text-xs text-muted-foreground">{new Date(user.createdAt).toLocaleDateString('ar-SA')}</TableCell>
+                      <TableCell>
+                        <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${
+                          user.role === 'ADMIN' ? 'bg-amber-100 text-amber-600 border border-amber-200' : 'bg-slate-100 text-slate-600 border border-slate-200'
+                        }`}>
+                          {user.role === 'ADMIN' ? 'مشرفة (ADMIN)' : 'طالبة (STUDENT)'}
+                        </span>
+                      </TableCell>
+                      <TableCell>
+                        <div className="flex items-center justify-center">
+                          {user.id !== currentUser?.id ? (
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              disabled={roleLoading === user.id}
+                              onClick={() => handleUpdateRole(user.id, user.role === 'ADMIN' ? 'STUDENT' : 'ADMIN')}
+                              className={`h-8 text-[10px] rounded-lg px-3 transition-all ${
+                                user.role === 'ADMIN' 
+                                  ? 'text-red-500 border-red-100 hover:bg-red-50' 
+                                  : 'text-emerald-600 border-emerald-100 hover:bg-emerald-50'
+                              }`}
+                            >
+                              {roleLoading === user.id ? (
+                                <RefreshCw className="h-3 w-3 animate-spin" />
+                              ) : user.role === 'ADMIN' ? (
+                                <>
+                                  <UserMinus className="h-3 w-3 ml-1" />
+                                  سحب الصلاحية
+                                </>
+                              ) : (
+                                <>
+                                  <Crown className="h-3 w-3 ml-1" />
+                                  ترقية كمشرفة
+                                </>
+                              )}
+                            </Button>
+                          ) : (
+                            <span className="text-[10px] text-muted-foreground italic">أنتِ الآن (المدير)</span>
+                          )}
+                        </div>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </div>
+          ) : (
+            <EmptyState icon={Users} message="لا يوجد مستخدمات مسجلات" />
           )}
         </CardContent>
       </Card>
