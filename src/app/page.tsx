@@ -862,7 +862,7 @@ function AutoReplyChat() {
   const quickQuestions = [
     { q: 'كيف أحجز؟', a: 'يمكنكِ الحجز عن طريق التوجه لعلامة التبويب "حجز للوكر"، اختيار القاعة ثم اللوكر المتاح.' },
     { q: 'أين موقع الكلية؟', a: 'الكلية التقنية للبنات بالطائف تقع في [حي الرميدة، الطائف]، ويمكنكِ الوصول إليها بسهولة عبر خرائط جوجل.' },
-    { q: 'تواصل معنا', a: 'يمكنكِ التواصل مع الكلية عبر حسابنا الرسمي في تويتر: @GTC_Taif' }
+    { q: 'الموقع الرسمي', a: 'يمكنكِ زيارة الموقع الرسمي للمؤسسة العامة للتدريب التقني والمهني للوصول لخدمات الكلية: https://www.tvtc.gov.sa' }
   ]
 
   const handleSend = (text: string) => {
@@ -878,9 +878,9 @@ function AutoReplyChat() {
       
       if (lowerText.includes('حجز') || lowerText.includes('لوكر')) {
         reply = 'لحجز لوكر، سجلي دخولكِ أولاً ثم اختاري القاعة واللوكر المفضل من الخريطة.'
-      } else if (lowerText.includes('تواصل') || lowerText.includes('تويتر')) {
-        reply = 'يمكنكِ التواصل معنا عبر حساب الكلية الرسمي في تويتر: @GTC_Taif'
-      } else if (lowerText.includes('موقع') || lowerText.includes('مكان')) {
+      } else if (lowerText.includes('تواصل') || lowerText.includes('تويتر') || lowerText.includes('موقع')) {
+        reply = 'يمكنكِ زيارة الموقع الرسمي للكلية (المؤسسة العامة للتدريب التقني): https://www.tvtc.gov.sa أو التواصل عبر تويتر: @GTC_Taif'
+      } else if (lowerText.includes('مكان')) {
         reply = 'الكلية التقنية للبنات بالطائف توفر خدماتها في مقرها الرسمي بمدينة الطائف (حي الرميدة).'
       }
 
@@ -1203,16 +1203,28 @@ export default function SeatBookingApp() {
                 <span>المؤسسة العامة للتدريب التقني والمهني</span>
               </div>
               <Separator orientation="vertical" className="h-4" />
-              <a 
-                href="https://twitter.com/GTC_Taif" 
-                target="_blank" 
-                rel="noreferrer"
-                className="flex items-center gap-1 hover:text-emerald-600 transition-colors"
-                title="تويتر الكلية التقنية للبنات بالطائف"
-              >
-                <Twitter className="h-4 w-4" />
-                <span className="hidden sm:inline">تواصلِ معنا</span>
-              </a>
+              <div className="flex items-center gap-3">
+                <a 
+                  href="https://www.tvtc.gov.sa" 
+                  target="_blank" 
+                  rel="noreferrer"
+                  className="flex items-center gap-1 hover:text-emerald-600 transition-colors"
+                  title="الموقع الرسمي للكلية التقنية"
+                >
+                  <Globe className="h-4 w-4" />
+                  <span className="hidden sm:inline">موقع الكلية</span>
+                </a>
+                <Separator orientation="vertical" className="h-3" />
+                <a 
+                  href="https://twitter.com/GTC_Taif" 
+                  target="_blank" 
+                  rel="noreferrer"
+                  className="flex items-center gap-1 hover:text-emerald-600 transition-colors text-muted-foreground/60"
+                  title="تويتر الكلية"
+                >
+                  <Twitter className="h-3.5 w-3.5" />
+                </a>
+              </div>
             </div>
           </div>
         </div>
