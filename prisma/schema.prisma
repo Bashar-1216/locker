@@ -53,3 +53,11 @@ model Booking {
   user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
   seat      Seat     @relation(fields: [seatId], references: [id], onDelete: Cascade)
 }
+
+model Rating {
+  id        String   @id @default(cuid())
+  stars     Int
+  comment   String?
+  userId    String?
+  createdAt DateTime @default(now())
+}

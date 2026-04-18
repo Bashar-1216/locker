@@ -35,7 +35,8 @@ import {
   XCircle, Clock, TrendingUp, Plus, Trash2, RefreshCw, Home,
   Armchair, AlertTriangle, LayoutDashboard, BookOpen, GraduationCap,
   ArrowLeft, Sparkles, Monitor, DoorOpen, Zap, UserCheck, ChevronLeft, Wrench,
-  LogIn, LogOut, UserPlus, Eye, EyeOff, Mail, Lock, User
+  LogIn, LogOut, UserPlus, Eye, EyeOff, Mail, Lock, User,
+  MessageSquare, Star, Send, Twitter, ChevronDown, MapPin, MessageCircle, Heart
 } from 'lucide-react'
 
 // ====== Types ======
@@ -122,15 +123,15 @@ const TIME_SLOTS = [
 
 const TABS = [
   { value: 'home', label: 'الرئيسية', icon: Home },
-  { value: 'booking', label: 'حجز واكر', icon: Sofa },
+  { value: 'booking', label: 'حجز لواكر', icon: Sofa },
   { value: 'my-bookings', label: 'حجوزاتي', icon: CalendarDays },
   { value: 'dashboard', label: 'لوحة التحكم', icon: LayoutDashboard }
 ]
 
 const STAT_CARDS = [
-  { key: 'totalSeats', label: 'إجمالي الواكرات', icon: Armchair, gradient: 'from-emerald-500 to-emerald-700', accent: '#059669', accentLight: '#10b981' },
-  { key: 'availableSeats', label: 'الواكرات المتاحة', icon: CheckCircle2, gradient: 'from-teal-400 to-teal-600', accent: '#14b8a6', accentLight: '#5eead4' },
-  { key: 'occupiedSeats', label: 'الواكرات المحجوزة', icon: XCircle, gradient: 'from-red-400 to-red-600', accent: '#ef4444', accentLight: '#fca5a5' },
+  { key: 'totalSeats', label: 'إجمالي اللواكر', icon: Armchair, gradient: 'from-emerald-500 to-emerald-700', accent: '#059669', accentLight: '#10b981' },
+  { key: 'availableSeats', label: 'اللواكر المتاحة', icon: CheckCircle2, gradient: 'from-teal-400 to-teal-600', accent: '#14b8a6', accentLight: '#5eead4' },
+  { key: 'occupiedSeats', label: 'اللواكر المحجوزة', icon: XCircle, gradient: 'from-red-400 to-red-600', accent: '#ef4444', accentLight: '#fca5a5' },
   { key: 'occupancyRate', label: 'نسبة الإشغال', icon: TrendingUp, gradient: 'from-amber-400 to-amber-600', accent: '#f59e0b', accentLight: '#fcd34d' }
 ] as const
 
@@ -690,7 +691,311 @@ function AuthModal({
           )}
         </motion.div>
       </DialogContent>
-    </Dialog>
+  )
+}
+
+// ====== FAQ SECTION ======
+function FAQSection() {
+  const faqs = [
+    {
+      q: 'كيف يمكنني حجز لوكر؟',
+      a: 'قم بتسجيل الدخول، اختر القاعة المفضلة، ثم اختر اللوكر المتاح وأكد حجزك. ستحصل على إشعار بتفاصيل الحجز.'
+    },
+    {
+      q: 'هل يمكنني اختيار موقع اللوكر؟',
+      a: 'نعم، النظام يعرض لك خريطة تفاعلية للقاعة تظهر جميع اللواكر المتاحة؛ يمكنك اختيار أي لوكر تراه مناسباً لك.'
+    },
+    {
+      q: 'كم مدة الحجز؟',
+      a: 'تتوفر اللواكر للحجز خلال فترات اليوم الدراسي (من الساعة 8 صباحاً وحتى 2:30 ظهراً)، ويمكنك اختيار الفترة التي تناسب جدولك.'
+    }
+  ]
+
+  const [openIndex, setOpenIndex] = useState<number | null>(null)
+
+  return (
+    <Card className="glass-card border-0 rounded-2xl overflow-hidden mt-8">
+      <CardHeader className="pb-3">
+        <CardTitle className="text-lg flex items-center gap-2 font-bold text-emerald-700">
+          <div className="p-1.5 rounded-lg bg-emerald-100">
+            <BookOpen className="h-5 w-5 text-emerald-600" />
+          </div>
+          الأسئلة الشائعة
+        </CardTitle>
+        <CardDescription>كل ما تحتاجين معرفته عن نظام حجز اللواكر</CardDescription>
+      </CardHeader>
+      <CardContent className="space-y-3">
+        {faqs.map((faq, idx) => (
+          <div key={idx} className="border border-emerald-100 rounded-xl overflow-hidden bg-white/50">
+            <button
+              onClick={() => setOpenIndex(openIndex === idx ? null : idx)}
+              className="w-full flex items-center justify-between p-4 text-right hover:bg-emerald-50 transition-colors"
+            >
+              <span className="font-semibold text-sm text-emerald-900">{faq.q}</span>
+              <ChevronDown className={`h-4 w-4 text-emerald-600 transition-transform ${openIndex === idx ? 'rotate-180' : ''}`} />
+            </button>
+            <AnimatePresence>
+              {openIndex === idx && (
+                <motion.div
+                  initial={{ height: 0, opacity: 0 }}
+                  animate={{ height: 'auto', opacity: 1 }}
+                  exit={{ height: 0, opacity: 0 }}
+                  transition={{ duration: 0.3 }}
+                >
+                  <p className="p-4 pt-0 text-sm text-muted-foreground leading-relaxed border-t border-emerald-50">
+                    {faq.a}
+                  </p>
+                </motion.div>
+              )}
+            </AnimatePresence>
+          </div>
+        ))}
+      </CardContent>
+    </Card>
+  )
+}
+
+// ====== RATING SYSTEM ======
+function RatingSystem({ currentUser }: { currentUser: CurrentUser | null }) {
+  const [stars, setStars] = useState(0)
+  const [hover, setHover] = useState(0)
+  const [comment, setComment] = useState('')
+  const [submitting, setSubmitting] = useState(false)
+  const [submitted, setSubmitted] = useState(false)
+
+  const handleSubmit = async () => {
+    if (stars === 0) return
+    setSubmitting(true)
+    try {
+      const res = await fetch('/api/ratings', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          stars,
+          comment,
+          userId: currentUser?.id
+        })
+      })
+      if (res.ok) {
+        setSubmitted(true)
+      }
+    } catch (err) {
+      console.error('Rating error:', err)
+    } finally {
+      setSubmitting(false)
+    }
+  }
+
+  if (submitted) {
+    return (
+      <Card className="glass-card border-0 rounded-2xl p-8 text-center mt-8 bg-gradient-to-br from-emerald-50 to-teal-50">
+        <div className="w-16 h-16 rounded-full bg-emerald-100 flex items-center justify-center mx-auto mb-4">
+          <Heart className="h-8 w-8 text-emerald-600 fill-emerald-600" />
+        </div>
+        <h3 className="text-xl font-bold text-emerald-900 mb-2">شكراً لتقييمك!</h3>
+        <p className="text-sm text-emerald-700">نحن نقدر رأيكِ ونسعى دائماً لتطوير خدماتنا.</p>
+      </Card>
+    )
+  }
+
+  return (
+    <Card className="glass-card border-0 rounded-2xl overflow-hidden mt-8 shadow-lg">
+      <div className="bg-gradient-to-r from-emerald-600 to-teal-600 p-6 text-white text-center">
+        <h3 className="text-lg font-bold">شاركينا رأيكِ</h3>
+        <p className="text-emerald-100 text-xs mt-1">تقييمكِ يساعدنا على تحسين النظام</p>
+      </div>
+      <CardContent className="p-6 space-y-6">
+        <div className="flex flex-col items-center gap-3">
+          <div className="flex items-center gap-1">
+            {[1, 2, 3, 4, 5].map((star) => (
+              <button
+                key={star}
+                onMouseEnter={() => setHover(star)}
+                onMouseLeave={() => setHover(0)}
+                onClick={() => setStars(star)}
+                className="transition-transform hover:scale-125 focus:outline-none"
+              >
+                <Star
+                  className={`h-9 w-9 ${
+                    star <= (hover || stars) ? 'text-yellow-400 fill-yellow-400' : 'text-muted-foreground opacity-30'
+                  }`}
+                />
+              </button>
+            ))}
+          </div>
+          <span className="text-sm font-medium text-muted-foreground">
+            {stars === 5 ? 'ممتاز جداً!' : stars === 4 ? 'جيد جداً' : stars === 3 ? 'جيد' : stars === 2 ? 'مقبول' : stars === 1 ? 'سيء' : 'اضغطي لاختيار التقييم'}
+          </span>
+        </div>
+
+        <div className="space-y-2">
+          <Label className="text-xs font-semibold text-emerald-900">ملاحظاتكِ (اختياري)</Label>
+          <Input
+            placeholder="أخبرينا عن تجربتكِ..."
+            value={comment}
+            onChange={(e) => setComment(e.target.value)}
+            className="rounded-xl border-emerald-100 focus:ring-emerald-300 min-h-[80px]"
+          />
+        </div>
+
+        <Button
+          onClick={handleSubmit}
+          disabled={stars === 0 || submitting}
+          className="w-full bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl h-11 font-bold shadow-lg shadow-emerald-200 transition-all"
+        >
+          {submitting ? <RefreshCw className="h-5 w-5 animate-spin" /> : 'إرسال التقييم'}
+        </Button>
+      </CardContent>
+    </Card>
+  )
+}
+
+// ====== AUTO REPLY CHAT ======
+function AutoReplyChat() {
+  const [isOpen, setIsOpen] = useState(false)
+  const [messages, setMessages] = useState<{ text: string; isBot: boolean }[]>([
+    { text: 'مرحباً بكِ! أنا المساعد الذكي لنظام حصين. كيف يمكنني مساعدتكِ اليوم؟', isBot: true }
+  ])
+  const [inputValue, setInputValue] = useState('')
+
+  const quickQuestions = [
+    { q: 'كيف أحجز؟', a: 'يمكنكِ الحجز عن طريق التوجه لعلامة التبويب "حجز للوكر"، اختيار القاعة ثم اللوكر المتاح.' },
+    { q: 'أين موقع الكلية؟', a: 'الكلية التقنية بالطائف تقع في منطقة [أدخل الموقع التفصيلي هنا]، ويمكنكِ الوصول إليها عبر خرائط جوجل.' },
+    { q: 'تواصل معنا', a: 'يمكنكِ التواصل مع الكلية عبر حسابنا في تويتر: @tvtc_taif_web' }
+  ]
+
+  const handleSend = (text: string) => {
+    if (!text.trim()) return
+    const newMsgs = [...messages, { text, isBot: false }]
+    setMessages(newMsgs)
+    setInputValue('')
+
+    // Simple Auto-Reply logic
+    setTimeout(() => {
+      let reply = 'عذراً، لم أفهم سؤالكِ جيداً. يمكنكِ اختيار أحد الأسئلة الشائعة أو التواصل معنا عبر تويتر.'
+      const lowerText = text.toLowerCase()
+      
+      if (lowerText.includes('حجز') || lowerText.includes('لوكر')) {
+        reply = 'لحجز لوكر، سجلي دخولكِ أولاً ثم اختاري القاعة واللوكر المفضل من الخريطة.'
+      } else if (lowerText.includes('تواصل') || lowerText.includes('تويتر')) {
+        reply = 'يمكنكِ التواصل معنا عبر حساب الكلية الرسمي في تويتر: @tvtc_taif_web'
+      } else if (lowerText.includes('موقع') || lowerText.includes('مكان')) {
+        reply = 'الكلية التقنية بالطائف توفر خدماتها في مقرها الرسمي بمدينة الطائف.'
+      }
+
+      setMessages(prev => [...prev, { text: reply, isBot: true }])
+    }, 1000)
+  }
+
+  return (
+    <div className="fixed bottom-6 left-6 z-[100] flex flex-col items-end">
+      <AnimatePresence>
+        {isOpen && (
+          <motion.div
+            initial={{ opacity: 0, scale: 0.8, y: 20 }}
+            animate={{ opacity: 1, scale: 1, y: 0 }}
+            exit={{ opacity: 0, scale: 0.8, y: 20 }}
+            className="mb-4 w-[320px] sm:w-[380px] h-[500px] glass-card border-emerald-100 shadow-2xl rounded-3xl flex flex-col overflow-hidden"
+          >
+            {/* Header */}
+            <div className="bg-gradient-to-r from-emerald-600 to-teal-600 p-4 text-white flex items-center justify-between shadow-md">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-full bg-white/20 backdrop-blur-sm flex items-center justify-center border border-white/30">
+                  <MessageCircle className="h-6 w-6" />
+                </div>
+                <div>
+                  <h4 className="font-bold text-sm">المساعد الذكي (حصين)</h4>
+                  <p className="text-[10px] text-emerald-100 flex items-center gap-1">
+                    <span className="w-2 h-2 rounded-full bg-emerald-300 animate-pulse" />
+                    متصل الآن
+                  </p>
+                </div>
+              </div>
+              <button onClick={() => setIsOpen(false)} className="hover:bg-white/10 p-1.5 rounded-full transition-colors">
+                <ChevronDown className="h-5 w-5" />
+              </button>
+            </div>
+
+            {/* Messages Area */}
+            <div className="flex-1 overflow-y-auto p-4 space-y-4 custom-scrollbar bg-emerald-50/10">
+              {messages.map((m, i) => (
+                <motion.div
+                  key={i}
+                  initial={{ opacity: 0, x: m.isBot ? -10 : 10 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  className={`flex ${m.isBot ? 'justify-start' : 'justify-end'}`}
+                >
+                  <div className={`max-w-[80%] p-3 rounded-2xl text-xs font-medium leading-relaxed shadow-sm ${
+                    m.isBot 
+                      ? 'bg-white text-emerald-900 rounded-tr-none' 
+                      : 'bg-emerald-600 text-white rounded-tl-none'
+                  }`}>
+                    {m.text}
+                  </div>
+                </motion.div>
+              ))}
+              
+              {/* Quick Options */}
+              {messages.length < 5 && (
+                <div className="flex flex-wrap gap-2 pt-2">
+                  {quickQuestions.map((qq, i) => (
+                    <button
+                      key={i}
+                      onClick={() => {
+                        const newMsgs = [...messages, { text: qq.q, isBot: false }]
+                        setMessages(newMsgs)
+                        setTimeout(() => setMessages(prev => [...prev, { text: qq.a, isBot: true }]), 800)
+                      }}
+                      className="text-[10px] bg-emerald-100 text-emerald-700 px-3 py-1.5 rounded-full border border-emerald-200 hover:bg-emerald-200 transition-colors"
+                    >
+                      {qq.q}
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            {/* Input Area */}
+            <div className="p-4 bg-white border-t border-emerald-50">
+              <div className="relative">
+                <Input
+                  placeholder="اكتبي سؤالكِ هنا..."
+                  value={inputValue}
+                  onChange={(e) => setInputValue(e.target.value)}
+                  onKeyPress={(e) => e.key === 'Enter' && handleSend(inputValue)}
+                  className="rounded-full pr-4 pl-12 h-11 border-emerald-100 focus:ring-emerald-300"
+                />
+                <button
+                  onClick={() => handleSend(inputValue)}
+                  className="absolute left-1.5 top-1.5 w-8 h-8 rounded-full bg-emerald-600 text-white flex items-center justify-center hover:bg-emerald-700 transition-colors"
+                >
+                  <Send className="h-4 w-4" />
+                </button>
+              </div>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Floating Button */}
+      <motion.button
+        whileHover={{ scale: 1.05 }}
+        whileTap={{ scale: 0.95 }}
+        onClick={() => setIsOpen(!isOpen)}
+        className="w-16 h-16 rounded-full bg-gradient-to-br from-emerald-600 to-teal-600 text-white shadow-2xl flex items-center justify-center border-4 border-white relative group"
+      >
+        {isOpen ? <XCircle className="h-7 w-7" /> : <MessageSquare className="h-7 w-7" />}
+        {!isOpen && (
+          <span className="absolute -top-1 -right-1 w-5 h-5 bg-red-500 rounded-full border-2 border-white flex items-center justify-center text-[10px] font-bold">1</span>
+        )}
+        {/* Tooltip */}
+        {!isOpen && (
+          <div className="absolute right-20 bg-emerald-900 text-white text-[10px] px-3 py-1.5 rounded-xl whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none shadow-xl">
+            نساعدك؟ أهلاً بكِ في حصين
+          </div>
+        )}
+      </motion.button>
+    </div>
   )
 }
 
@@ -759,7 +1064,7 @@ export default function SeatBookingApp() {
                 <GraduationCap className="h-6 w-6 text-white" />
               </div>
               <div>
-                <h1 className="text-xl font-bold leading-tight tracking-tight">حصين لحجز لواكر</h1>
+                <h1 className="text-xl font-bold leading-tight tracking-tight">حصين لحجز للوكر</h1>
                 <p className="text-[11px] text-emerald-100 font-medium">الكليه التقنيه</p>
               </div>
             </div>
@@ -852,7 +1157,7 @@ export default function SeatBookingApp() {
               exit="exit"
             >
               <TabsContent value="home" className="mt-0">
-                <HomePage onTabChange={handleTabChange} />
+                <HomePage onTabChange={handleTabChange} currentUser={currentUser} />
               </TabsContent>
               <TabsContent value="booking" className="mt-0">
                 <BookingPage
@@ -882,22 +1187,50 @@ export default function SeatBookingApp() {
           <div className="flex flex-col sm:flex-row items-center justify-between gap-3 text-xs text-muted-foreground">
             <div className="flex items-center gap-2">
               <Building2 className="h-4 w-4 text-emerald-600" />
-              <span className="font-medium">حصين لحجز لواكر</span>
+              <span className="font-medium">حصين لحجز اللواكر</span>
             </div>
-            <p className="text-center">نظام حصين لحجز لواكر الإلكتروني &copy; {new Date().getFullYear()}</p>
-            <div className="flex items-center gap-1.5">
-              <BookOpen className="h-3.5 w-3.5 text-emerald-600" />
-              <span>المؤسسة العامة للتدريب التقني والمهني</span>
+            <div className="flex flex-col items-center gap-1">
+              <p className="text-center font-bold">نظام حصين لحجز اللواكر الإلكتروني &copy; {new Date().getFullYear()}</p>
+              <div className="flex items-center gap-2 text-[10px] opacity-80">
+                <MapPin className="h-3 w-3 text-emerald-600" />
+                <span>الكلية التقنية بالطائف</span>
+              </div>
+            </div>
+            <div className="flex items-center gap-3">
+              <div className="flex items-center gap-1.5">
+                <BookOpen className="h-3.5 w-3.5 text-emerald-600" />
+                <span>المؤسسة العامة للتدريب التقني والمهني</span>
+              </div>
+              <Separator orientation="vertical" className="h-4" />
+              <a 
+                href="https://twitter.com/tvtc_taif_web" 
+                target="_blank" 
+                rel="noreferrer"
+                className="flex items-center gap-1 hover:text-emerald-600 transition-colors"
+                title="تويتر الكلية التقنية بالطائف"
+              >
+                <Twitter className="h-4 w-4" />
+                <span className="hidden sm:inline">تواصلِ معنا</span>
+              </a>
             </div>
           </div>
         </div>
       </footer>
+
+      {/* ===== AUTO REPLY CHAT ===== */}
+      <AutoReplyChat />
     </div>
   )
 }
 
 // ====== HOME PAGE ======
-function HomePage({ onTabChange }: { onTabChange: (v: string) => void }) {
+function HomePage({ 
+  onTabChange,
+  currentUser
+}: { 
+  onTabChange: (v: string) => void,
+  currentUser: CurrentUser | null
+}) {
   const [stats, setStats] = useState<Stats | null>(null)
   const [loading, setLoading] = useState(true)
 
@@ -957,17 +1290,17 @@ function HomePage({ onTabChange }: { onTabChange: (v: string) => void }) {
         <div className="floating-shape" />
 
         <div className="relative z-10">
-          <div className="flex items-center gap-3 mb-3">
+            <div className="flex items-center gap-3 mb-3">
             <div className="p-2.5 bg-white/20 backdrop-blur-sm rounded-xl border border-white/20">
               <GraduationCap className="h-7 w-7" />
             </div>
             <div>
-              <h2 className="text-2xl font-bold leading-tight">مرحباً بكِ في نظام حصين لحجز لواكر</h2>
-              <p className="text-emerald-100 text-sm font-medium">الكليه التقنيه</p>
+              <h2 className="text-2xl font-bold leading-tight">مرحبًا بك في حصين لحجز اللواكر</h2>
+              <p className="text-emerald-100 text-sm font-medium">الكلية التقنية بالطائف</p>
             </div>
           </div>
           <p className="text-emerald-50 text-sm mt-2 leading-relaxed max-w-xl">
-            يمكنكِ حجز واكركِ بسهولة عبر النظام الإلكتروني. اختر القاعة والتاريخ المناسبين لكِ واستمتعي بتجربة تعليمية مريحة.
+            يمكنكِ حجز لوكركِ بسهولة عبر النظام الإلكتروني. اختر القاعة والتاريخ المناسبين لكِ واستمتعي بتجربة تعليمية مريحة.
           </p>
 
           {/* Quick Action Buttons */}
@@ -1067,7 +1400,7 @@ function HomePage({ onTabChange }: { onTabChange: (v: string) => void }) {
                 <div className="p-1.5 rounded-lg bg-emerald-100">
                   <BarChart3 className="h-4 w-4 text-emerald-600" />
                 </div>
-                توزيع حالة الواكرات
+                توزيع حالة اللوكرات
               </CardTitle>
             </CardHeader>
             <CardContent>
@@ -1198,7 +1531,7 @@ function HomePage({ onTabChange }: { onTabChange: (v: string) => void }) {
                         <span>{booking.seat.room.name}</span>
                         <span className="opacity-40">|</span>
                         <Armchair className="h-3 w-3" />
-                        <span>واكر {booking.seat.seatNumber}</span>
+                        <span>لوكر {booking.seat.seatNumber}</span>
                       </div>
                       <div className="flex items-center gap-2 text-xs text-muted-foreground">
                         <CalendarDays className="h-3 w-3" />
@@ -1217,6 +1550,16 @@ function HomePage({ onTabChange }: { onTabChange: (v: string) => void }) {
           </CardContent>
         </Card>
       </motion.div>
+
+      {/* ===== NEW SECTIONS ===== */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 pb-12">
+        <div className="space-y-6">
+          <FAQSection />
+        </div>
+        <div className="space-y-6">
+          <RatingSystem currentUser={currentUser} />
+        </div>
+      </div>
     </div>
   )
 }
@@ -1317,7 +1660,7 @@ function BookingPage({
         })
         if (res.ok) {
           const booking = await res.json()
-          setSuccessMessage(`تم حجز واكر ${booking.seat.seatNumber} في ${booking.seat.room.name} بنجاح!`)
+          setSuccessMessage(`تم حجز لوكر ${booking.seat.seatNumber} في ${booking.seat.room.name} بنجاح!`)
           setShowConfirm(false)
           setSelectedSeat(null)
           setCurrentStep(1)
@@ -1355,7 +1698,7 @@ function BookingPage({
         })
         if (res.ok) {
           const booking = await res.json()
-          setSuccessMessage(`تم حجز واكر ${booking.seat.seatNumber} في ${booking.seat.room.name} بنجاح!`)
+          setSuccessMessage(`تم حجز لوكر ${booking.seat.seatNumber} في ${booking.seat.room.name} بنجاح!`)
           setShowConfirm(false)
           setSelectedSeat(null)
           setCurrentStep(1)
@@ -1383,13 +1726,13 @@ function BookingPage({
   // Step labels differ based on auth state
   const STEP_LABELS_LOGGED_IN = [
     { num: 1, label: 'اختيار القاعة والموعد', icon: Building2 },
-    { num: 2, label: 'اختيار واكر', icon: Armchair }
+    { num: 2, label: 'اختيار لوكر', icon: Armchair }
   ]
 
   const STEP_LABELS_GUEST = [
     { num: 1, label: 'بيانات الطالبة', icon: Users },
     { num: 2, label: 'اختيار القاعة', icon: Building2 },
-    { num: 3, label: 'اختيار واكر', icon: Armchair }
+    { num: 3, label: 'اختيار لوكر', icon: Armchair }
   ]
 
   const STEP_LABELS = isLoggedIn ? STEP_LABELS_LOGGED_IN : STEP_LABELS_GUEST
@@ -1419,7 +1762,7 @@ function BookingPage({
               <div className="w-20 h-20 rounded-2xl bg-emerald-100 flex items-center justify-center mx-auto mb-4">
                 <LogIn className="h-10 w-10 text-emerald-600" />
               </div>
-              <h3 className="text-lg font-bold mb-2">سجّلي دخولكِ لحجز واكركِ</h3>
+              <h3 className="text-lg font-bold mb-2">سجّلي دخولكِ لحجز لوكركِ</h3>
               <p className="text-sm text-muted-foreground mb-6 max-w-md mx-auto">
                 لضمان إدارة حجوزاتكِ بسهولة وتأمين بياناتكِ، يرجى تسجيل الدخول أو إنشاء حساب جديد قبل الحجز.
               </p>
@@ -1645,7 +1988,7 @@ function BookingPage({
                               )}
                               <div className="flex items-center gap-1.5 mt-2">
                                 <Armchair className="h-3 w-3 text-muted-foreground" />
-                                <span className="text-xs text-muted-foreground font-medium">{room._count.seats} واكر</span>
+                                <span className="text-xs text-muted-foreground font-medium">{room._count.seats} لوكر</span>
                               </div>
                             </div>
                           </div>
@@ -1684,9 +2027,9 @@ function BookingPage({
                   <div className="p-1.5 rounded-lg bg-amber-100">
                     <Armchair className="h-4 w-4 text-amber-600" />
                   </div>
-                  خريطة الواكرات - {currentRoom?.name}
+                  خريطة اللوكرات - {currentRoom?.name}
                 </CardTitle>
-                <CardDescription>اضغطي على الواكر المتاح لحجزه</CardDescription>
+                <CardDescription>اضغطي على اللوكر المتاح لحجزه</CardDescription>
               </CardHeader>
               <CardContent>
                 {/* Booking Info Summary */}
@@ -1752,7 +2095,7 @@ function BookingPage({
                                   >
                                     {seat.seatNumber}
                                     <div className="seat-tooltip">
-                                      واكر {seat.seatNumber} - {SEAT_STATUS_LABELS[seat.status]}
+                                      لوكر {seat.seatNumber} - {SEAT_STATUS_LABELS[seat.status]}
                                     </div>
                                   </button>
                                 )
@@ -1774,7 +2117,7 @@ function BookingPage({
                                   >
                                     {seat.seatNumber}
                                     <div className="seat-tooltip">
-                                      واكر {seat.seatNumber} - {SEAT_STATUS_LABELS[seat.status]}
+                                      لوكر {seat.seatNumber} - {SEAT_STATUS_LABELS[seat.status]}
                                     </div>
                                   </button>
                                 )
@@ -1794,7 +2137,7 @@ function BookingPage({
                     </div>
                   </div>
                 ) : (
-                  <EmptyState icon={Armchair} message="لا توجد واكرات في هذه القاعة" />
+                  <EmptyState icon={Armchair} message="لا توجد لوكرات في هذه القاعة" />
                 )}
 
                 <div className="flex justify-between mt-6">
@@ -1813,7 +2156,7 @@ function BookingPage({
                         return
                       }
                       if (!selectedSeat) {
-                        alert('يرجى اختيار واكر')
+                        alert('يرجى اختيار لوكر')
                         return
                       }
                       setShowConfirm(true)
@@ -1852,7 +2195,7 @@ function BookingPage({
               style={{ boxShadow: '0 0 30px rgba(5, 150, 105, 0.3), 0 10px 40px rgba(5, 150, 105, 0.2)' }}
             >
               <Sparkles className="h-5 w-5 ml-2" />
-              حجز واكر {selectedSeat.seatNumber} - {currentRoom?.name}
+              حجز لوكر {selectedSeat.seatNumber} - {currentRoom?.name}
             </Button>
           </div>
         </motion.div>
@@ -1879,7 +2222,7 @@ function BookingPage({
                 ...(currentUser!.studentId ? [{ label: 'رقم الطالبة:', value: currentUser!.studentId! }] : []),
                 ...(currentUser!.phone ? [{ label: 'رقم الجوال:', value: currentUser!.phone! }] : []),
                 { label: 'القاعة:', value: currentRoom?.name || '' },
-                { label: 'الواكر:', value: `واكر ${selectedSeat?.seatNumber}` },
+                { label: 'اللوكر:', value: `لوكر ${selectedSeat?.seatNumber}` },
                 { label: 'التاريخ:', value: formData.date },
                 { label: 'الوقت:', value: formData.timeSlot }
               ].map((item, idx) => (
@@ -2110,7 +2453,7 @@ function GuestBookingForm({
                   </div>
                   اختيار القاعة
                 </CardTitle>
-                <CardDescription>اختاري القاعة المناسبة لحجز واكركِ</CardDescription>
+                <CardDescription>اختاري القاعة المناسبة لحجز لوكركِ</CardDescription>
               </CardHeader>
               <CardContent>
                 {rooms.length > 0 ? (
@@ -2148,7 +2491,7 @@ function GuestBookingForm({
                               )}
                               <div className="flex items-center gap-1.5 mt-2">
                                 <Armchair className="h-3 w-3 text-muted-foreground" />
-                                <span className="text-xs text-muted-foreground font-medium">{room._count.seats} واكر</span>
+                                <span className="text-xs text-muted-foreground font-medium">{room._count.seats} لوكر</span>
                               </div>
                             </div>
                           </div>
@@ -2194,9 +2537,9 @@ function GuestBookingForm({
                   <div className="p-1.5 rounded-lg bg-amber-100">
                     <Armchair className="h-4 w-4 text-amber-600" />
                   </div>
-                  خريطة الواكرات - {currentRoom?.name}
+                  خريطة اللوكرات - {currentRoom?.name}
                 </CardTitle>
-                <CardDescription>اضغطي على الواكر المتاح لحجزه</CardDescription>
+                <CardDescription>اضغطي على اللوكر المتاح لحجزه</CardDescription>
               </CardHeader>
               <CardContent>
                 <div className="flex flex-wrap gap-4 mb-5">
@@ -2248,7 +2591,7 @@ function GuestBookingForm({
                                   >
                                     {seat.seatNumber}
                                     <div className="seat-tooltip">
-                                      واكر {seat.seatNumber} - {SEAT_STATUS_LABELS[seat.status]}
+                                      لوكر {seat.seatNumber} - {SEAT_STATUS_LABELS[seat.status]}
                                     </div>
                                   </button>
                                 )
@@ -2270,7 +2613,7 @@ function GuestBookingForm({
                                   >
                                     {seat.seatNumber}
                                     <div className="seat-tooltip">
-                                      واكر {seat.seatNumber} - {SEAT_STATUS_LABELS[seat.status]}
+                                      لوكر {seat.seatNumber} - {SEAT_STATUS_LABELS[seat.status]}
                                     </div>
                                   </button>
                                 )
@@ -2290,7 +2633,7 @@ function GuestBookingForm({
                     </div>
                   </div>
                 ) : (
-                  <EmptyState icon={Armchair} message="لا توجد واكرات في هذه القاعة" />
+                  <EmptyState icon={Armchair} message="لا توجد لوكرات في هذه القاعة" />
                 )}
 
                 <div className="flex justify-between mt-6">
@@ -2309,7 +2652,7 @@ function GuestBookingForm({
                         return
                       }
                       if (!selectedSeat) {
-                        alert('يرجى اختيار واكر')
+                        alert('يرجى اختيار لوكر')
                         return
                       }
                       setShowConfirm(true)
@@ -2348,7 +2691,7 @@ function GuestBookingForm({
               style={{ boxShadow: '0 0 30px rgba(5, 150, 105, 0.3), 0 10px 40px rgba(5, 150, 105, 0.2)' }}
             >
               <Sparkles className="h-5 w-5 ml-2" />
-              حجز واكر {selectedSeat.seatNumber} - {currentRoom?.name}
+              حجز لوكر {selectedSeat.seatNumber} - {currentRoom?.name}
             </Button>
           </div>
         </motion.div>
@@ -2375,7 +2718,7 @@ function GuestBookingForm({
                 ...(formData.studentId ? [{ label: 'رقم الطالبة:', value: formData.studentId }] : []),
                 ...(formData.phone ? [{ label: 'رقم الجوال:', value: formData.phone }] : []),
                 { label: 'القاعة:', value: currentRoom?.name || '' },
-                { label: 'الواكر:', value: `واكر ${selectedSeat?.seatNumber}` },
+                { label: 'اللوكر:', value: `لوكر ${selectedSeat?.seatNumber}` },
                 { label: 'التاريخ:', value: formData.date },
                 { label: 'الوقت:', value: formData.timeSlot }
               ].map((item, idx) => (
@@ -2574,7 +2917,7 @@ function MyBookingsPage({
                     <span className="font-medium">{booking.seat.room.name}</span>
                     <span className="text-muted-foreground">-</span>
                     <Armchair className="h-3.5 w-3.5 text-muted-foreground" />
-                    <span className="font-medium">واكر {booking.seat.seatNumber}</span>
+                    <span className="font-medium">لوكر {booking.seat.seatNumber}</span>
                   </div>
                   <div className="flex items-center gap-2 text-xs">
                     <CalendarDays className="h-3.5 w-3.5 text-muted-foreground" />
@@ -2926,7 +3269,7 @@ function DashboardPage() {
                               حذف القاعة
                             </AlertDialogTitle>
                             <AlertDialogDescription>
-                              هل أنتِ متأكدة من حذف &quot;{room.name}&quot;؟ سيتم حذف جميع الواكرات والحجوزات المرتبطة.
+                              هل أنتِ متأكدة من حذف &quot;{room.name}&quot;؟ سيتم حذف جميع اللوكرات والحجوزات المرتبطة.
                             </AlertDialogDescription>
                           </AlertDialogHeader>
                           <AlertDialogFooter className="gap-2">
@@ -2943,7 +3286,7 @@ function DashboardPage() {
                     </div>
                     <div className="flex items-center gap-2 text-xs text-muted-foreground">
                       <Armchair className="h-3.5 w-3.5" />
-                      <span className="font-medium">{room._count.seats} واكر</span>
+                      <span className="font-medium">{room._count.seats} لوكر</span>
                       <Separator orientation="vertical" className="h-3 mx-1" />
                       <span>السعة: {room.capacity}</span>
                     </div>
@@ -2976,7 +3319,7 @@ function DashboardPage() {
                   <TableRow>
                     <TableHead className="text-xs">الطالبة</TableHead>
                     <TableHead className="text-xs">القاعة</TableHead>
-                    <TableHead className="text-xs">الواكر</TableHead>
+                    <TableHead className="text-xs">اللوكر</TableHead>
                     <TableHead className="text-xs">التاريخ</TableHead>
                     <TableHead className="text-xs">الوقت</TableHead>
                     <TableHead className="text-xs">الحالة</TableHead>
@@ -2995,7 +3338,7 @@ function DashboardPage() {
                         </div>
                       </TableCell>
                       <TableCell className="text-xs">{booking.seat.room.name}</TableCell>
-                      <TableCell className="text-xs font-mono">واكر {booking.seat.seatNumber}</TableCell>
+                      <TableCell className="text-xs font-mono">لوكر {booking.seat.seatNumber}</TableCell>
                       <TableCell className="text-xs">{booking.date}</TableCell>
                       <TableCell className="text-xs">{booking.timeSlot}</TableCell>
                       <TableCell><StatusBadge status={booking.status} /></TableCell>
@@ -3068,7 +3411,7 @@ function DashboardPage() {
               />
             </div>
             <div className="space-y-2">
-              <Label className="text-sm font-medium">السعة (عدد الواكرات)</Label>
+              <Label className="text-sm font-medium">السعة (عدد اللواكر)</Label>
               <Input
                 type="number"
                 placeholder="40"
