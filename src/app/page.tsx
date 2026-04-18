@@ -861,8 +861,8 @@ function AutoReplyChat() {
 
   const quickQuestions = [
     { q: 'كيف أحجز؟', a: 'يمكنكِ الحجز عن طريق التوجه لعلامة التبويب "حجز للوكر"، اختيار القاعة ثم اللوكر المتاح.' },
-    { q: 'أين موقع الكلية؟', a: 'الكلية التقنية للبنات بالطائف تقع في [حي الرميدة، الطائف]، ويمكنكِ الوصول إليها بسهولة عبر خرائط جوجل.' },
-    { q: 'الموقع الرسمي', a: 'يمكنكِ زيارة بوابة "قبولي" (https://adm.tvtc.gov.sa) أو الموقع الرسمي (https://tvtc.gov.sa) للوصول لخدمات الكلية.' }
+    { q: 'الموقع الرسمي', a: 'يمكنكِ زيارة بوابة "قبولي" (https://adm.tvtc.gov.sa) أو الموقع الرسمي (https://tvtc.gov.sa) للوصول لخدمات الكلية.' },
+    { q: 'تواصل معنا', a: 'يمكنكِ التواصل مع الكلية عبر حسابنا الرسمي في تويتر: @GTC_Taif' }
   ]
 
   const handleSend = (text: string) => {
@@ -1224,6 +1224,17 @@ export default function SeatBookingApp() {
                 >
                   <UserPlus className="h-3.5 w-3.5" />
                   <span className="hidden sm:inline">بوابة قبولي</span>
+                </a>
+                <Separator orientation="vertical" className="h-3" />
+                <a 
+                  href="https://twitter.com/GTC_Taif" 
+                  target="_blank" 
+                  rel="noreferrer"
+                  className="flex items-center gap-1 hover:text-emerald-600 transition-colors text-xs font-medium"
+                  title="تواصل معنا عبر تويتر"
+                >
+                  <Twitter className="h-3.5 w-3.5" />
+                  <span className="hidden sm:inline">تواصلِ معنا</span>
                 </a>
               </div>
             </div>
