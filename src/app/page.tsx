@@ -1376,16 +1376,14 @@ function HomePage({
             </Button>
             <Button
               onClick={() => onTabChange('my-bookings')}
-              variant="outline"
-              className="border-white/30 text-white hover:bg-white/10 rounded-xl px-5 backdrop-blur-sm transition-all duration-300"
+              className="bg-emerald-50/20 hover:bg-white/90 text-white hover:text-emerald-700 border border-white/30 rounded-xl px-5 backdrop-blur-sm transition-all duration-300 font-medium"
             >
               <CalendarDays className="h-4 w-4 ml-2" />
               عرض الحجوزات
             </Button>
             <Button
               onClick={() => onTabChange('dashboard')}
-              variant="outline"
-              className="border-white/30 text-white hover:bg-white/10 rounded-xl px-5 backdrop-blur-sm transition-all duration-300"
+              className="bg-emerald-50/20 hover:bg-white/90 text-white hover:text-emerald-700 border border-white/30 rounded-xl px-5 backdrop-blur-sm transition-all duration-300 font-medium"
             >
               <LayoutDashboard className="h-4 w-4 ml-2" />
               لوحة التحكم
