@@ -1002,7 +1002,6 @@ function AutoReplyChat() {
                   ))}
                 </div>
               )}
-            </div>
 
             {/* Input Area */}
             <div className="p-4 bg-white border-t border-emerald-50">
