@@ -35,7 +35,14 @@ export async function GET() {
   try {
     const ratings = await db.rating.findMany({
       orderBy: { createdAt: 'desc' },
-      take: 10
+      take: 10,
+      include: {
+        user: {
+          select: {
+            name: true
+          }
+        }
+      }
     })
     return NextResponse.json(ratings)
   } catch (error) {

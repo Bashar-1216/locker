@@ -18,6 +18,7 @@ model User {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
   bookings  Booking[]
+  ratings   Rating[]
 }
 
 model Room {
@@ -60,4 +61,5 @@ model Rating {
   comment   String?
   userId    String?
   createdAt DateTime @default(now())
+  user      User?    @relation(fields: [userId], references: [id], onDelete: Cascade)
 }

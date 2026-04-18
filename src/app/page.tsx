@@ -863,7 +863,73 @@ function RatingSystem({ currentUser }: { currentUser: CurrentUser | null }) {
           {submitting ? <RefreshCw className="h-5 w-5 animate-spin" /> : 'إرسال التقييم'}
         </Button>
       </CardContent>
+
+      {/* ===== RECENT RATINGS SECTION ===== */}
+      <RecentRatings />
     </Card>
+  )
+}
+
+function RecentRatings() {
+  const [ratings, setRatings] = useState<any[]>([])
+  const [loading, setLoading] = useState(true)
+
+  useEffect(() => {
+    async function fetchRatings() {
+      try {
+        const res = await fetch('/api/ratings')
+        if (res.ok) {
+          const data = await res.json()
+          setRatings(data)
+        }
+      } catch (err) {
+        console.error('Failed to fetch ratings:', err)
+      } finally {
+        setLoading(false)
+      }
+    }
+    fetchRatings()
+  }, [])
+
+  if (loading || ratings.length === 0) return null
+
+  return (
+    <div className="bg-emerald-50/50 border-t border-emerald-100 p-6">
+      <h4 className="font-bold text-emerald-900 mb-4 flex items-center gap-2">
+        <Star className="h-4 w-4 text-emerald-600" />
+        تجارب الطالبات
+      </h4>
+      <div className="grid gap-4">
+        {ratings.map((rating: any) => (
+          <div key={rating.id} className="bg-white p-4 rounded-xl shadow-sm border border-emerald-50">
+            <div className="flex items-center justify-between mb-2">
+              <div className="flex items-center gap-2">
+                <div className="w-8 h-8 rounded-full bg-emerald-100 flex items-center justify-center text-emerald-700 font-bold text-xs">
+                  {rating.user?.name ? rating.user.name.charAt(0) : 'ز'}
+                </div>
+                <span className="text-sm font-semibold text-gray-800">
+                  {rating.user?.name ? `${rating.user.name.split(' ')[0]} ${rating.user.name.split(' ').length > 1 ? rating.user.name.split(' ')[1].charAt(0) + '.' : ''}` : 'زائرة'}
+                </span>
+              </div>
+              <div className="flex">
+                {[...Array(5)].map((_, i) => (
+                  <Star
+                    key={i}
+                    className={`h-3 w-3 ${i < rating.stars ? 'text-yellow-400 fill-yellow-400' : 'text-gray-200'}`}
+                  />
+                ))}
+              </div>
+            </div>
+            {rating.comment && (
+              <p className="text-xs text-gray-600 mt-2 line-clamp-2 leading-relaxed">"{rating.comment}"</p>
+            )}
+            <p className="text-[10px] text-gray-400 mt-2">
+              {new Date(rating.createdAt).toLocaleDateString('ar-SA')}
+            </p>
+          </div>
+        ))}
+      </div>
+    </div>
   )
 }
 

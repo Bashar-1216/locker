@@ -11,7 +11,8 @@
     "db:generate": "prisma generate",
     "db:migrate": "prisma migrate dev",
     "db:reset": "prisma migrate reset",
-    "postinstall": "prisma generate"
+    "postinstall": "prisma generate",
+    "dbpush": "prisma db push"
   },
   "dependencies": {
     "@dnd-kit/core": "^6.3.1",
