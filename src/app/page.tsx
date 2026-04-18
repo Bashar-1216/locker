@@ -36,7 +36,7 @@ import {
   Armchair, AlertTriangle, LayoutDashboard, BookOpen, GraduationCap,
   ArrowLeft, Sparkles, Monitor, DoorOpen, Zap, UserCheck, ChevronLeft, Wrench,
   LogIn, LogOut, UserPlus, Eye, EyeOff, Mail, Lock, User,
-  MessageSquare, Star, Send, Twitter, ChevronDown, MapPin, MessageCircle, Heart, Globe
+  MessageSquare, Star, Send, ChevronDown, MapPin, MessageCircle, Heart, Globe
 } from 'lucide-react'
 
 // ====== Types ======
@@ -861,9 +861,8 @@ function AutoReplyChat() {
 
   const quickQuestions = [
     { q: 'كيف أحجز؟', a: 'يمكنكِ الحجز عن طريق التوجه لعلامة التبويب "حجز للوكر"، اختيار القاعة ثم اللوكر المتاح.' },
-    { q: 'الموقع الرسمي', a: 'يمكنكِ زيارة بوابة "قبولي" (https://adm.tvtc.gov.sa) أو الموقع الرسمي (https://tvtc.gov.sa) للوصول لخدمات الكلية.' },
-    { q: 'تواصل معنا', a: 'يمكنكِ التواصل مع الكلية عبر حسابنا الرسمي في تويتر: @GTC_Taif' }
-  ]
+    { q: 'الموقع الرسمي', a: 'يمكنكِ زيارة بوابة "قبولي" (https://adm.tvtc.gov.sa) أو الموقع الرسمي (https://tvtc.gov.sa) للوصول لخدمات الكلية.' }
+]
 
   const handleSend = (text: string) => {
     if (!text.trim()) return
@@ -873,15 +872,13 @@ function AutoReplyChat() {
 
     // Simple Auto-Reply logic
     setTimeout(() => {
-      let reply = 'عذراً، لم أفهم سؤالكِ جيداً. يمكنكِ اختيار أحد الأسئلة الشائعة أو التواصل معنا عبر تويتر.'
+      let reply = 'عذراً، لم أفهم سؤالكِ جيداً. يمكنكِ اختيار أحد الأسئلة الشائعة أو زيارة الموقع الرسمي للمؤسسة.'
       const lowerText = text.toLowerCase()
       
       if (lowerText.includes('حجز') || lowerText.includes('لوكر')) {
         reply = 'لحجز لوكر، سجلي دخولكِ أولاً ثم اختاري القاعة واللوكر المفضل من الخريطة.'
-      } else if (lowerText.includes('تواصل') || lowerText.includes('تويتر') || lowerText.includes('موقع')) {
+      } else if (lowerText.includes('موقع') || lowerText.includes('مكان')) {
         reply = 'يمكنكِ زيارة الموقع الرسمي للكلية: https://tvtc.gov.sa أو بوابة القبول "قبولي": https://adm.tvtc.gov.sa'
-      } else if (lowerText.includes('مكان')) {
-        reply = 'الكلية التقنية للبنات بالطائف توفر خدماتها في مقرها الرسمي بمدينة الطائف (حي الرميدة).'
       }
 
       setMessages(prev => [...prev, { text: reply, isBot: true }])
@@ -1224,17 +1221,6 @@ export default function SeatBookingApp() {
                 >
                   <UserPlus className="h-3.5 w-3.5" />
                   <span className="hidden sm:inline">بوابة قبولي</span>
-                </a>
-                <Separator orientation="vertical" className="h-3" />
-                <a 
-                  href="https://twitter.com/GTC_Taif" 
-                  target="_blank" 
-                  rel="noreferrer"
-                  className="flex items-center gap-1 hover:text-emerald-600 transition-colors text-xs font-medium"
-                  title="تواصل معنا عبر تويتر"
-                >
-                  <Twitter className="h-3.5 w-3.5" />
-                  <span className="hidden sm:inline">تواصلِ معنا</span>
                 </a>
               </div>
             </div>
