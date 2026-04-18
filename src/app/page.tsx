@@ -861,8 +861,8 @@ function AutoReplyChat() {
 
   const quickQuestions = [
     { q: 'كيف أحجز؟', a: 'يمكنكِ الحجز عن طريق التوجه لعلامة التبويب "حجز للوكر"، اختيار القاعة ثم اللوكر المتاح.' },
-    { q: 'أين موقع الكلية؟', a: 'الكلية التقنية بالطائف تقع في منطقة [أدخل الموقع التفصيلي هنا]، ويمكنكِ الوصول إليها عبر خرائط جوجل.' },
-    { q: 'تواصل معنا', a: 'يمكنكِ التواصل مع الكلية عبر حسابنا في تويتر: @tvtc_taif_web' }
+    { q: 'أين موقع الكلية؟', a: 'الكلية التقنية للبنات بالطائف تقع في [حي الرميدة، الطائف]، ويمكنكِ الوصول إليها بسهولة عبر خرائط جوجل.' },
+    { q: 'تواصل معنا', a: 'يمكنكِ التواصل مع الكلية عبر حسابنا الرسمي في تويتر: @GTC_Taif' }
   ]
 
   const handleSend = (text: string) => {
@@ -879,9 +879,9 @@ function AutoReplyChat() {
       if (lowerText.includes('حجز') || lowerText.includes('لوكر')) {
         reply = 'لحجز لوكر، سجلي دخولكِ أولاً ثم اختاري القاعة واللوكر المفضل من الخريطة.'
       } else if (lowerText.includes('تواصل') || lowerText.includes('تويتر')) {
-        reply = 'يمكنكِ التواصل معنا عبر حساب الكلية الرسمي في تويتر: @tvtc_taif_web'
+        reply = 'يمكنكِ التواصل معنا عبر حساب الكلية الرسمي في تويتر: @GTC_Taif'
       } else if (lowerText.includes('موقع') || lowerText.includes('مكان')) {
-        reply = 'الكلية التقنية بالطائف توفر خدماتها في مقرها الرسمي بمدينة الطائف.'
+        reply = 'الكلية التقنية للبنات بالطائف توفر خدماتها في مقرها الرسمي بمدينة الطائف (حي الرميدة).'
       }
 
       setMessages(prev => [...prev, { text: reply, isBot: true }])
@@ -1204,11 +1204,11 @@ export default function SeatBookingApp() {
               </div>
               <Separator orientation="vertical" className="h-4" />
               <a 
-                href="https://twitter.com/tvtc_taif_web" 
+                href="https://twitter.com/GTC_Taif" 
                 target="_blank" 
                 rel="noreferrer"
                 className="flex items-center gap-1 hover:text-emerald-600 transition-colors"
-                title="تويتر الكلية التقنية بالطائف"
+                title="تويتر الكلية التقنية للبنات بالطائف"
               >
                 <Twitter className="h-4 w-4" />
                 <span className="hidden sm:inline">تواصلِ معنا</span>
