@@ -529,8 +529,9 @@ function AuthModal({
                     placeholder="••••••••"
                     value={loginPassword}
                     onChange={e => { setLoginPassword(e.target.value); setError(null) }}
-                    className="rounded-xl h-11 focus:ring-emerald-300 pl-10"
+                    className="rounded-xl h-11 focus:ring-emerald-300 pr-4 pl-10 text-right"
                     required
+                    dir="rtl"
                   />
                   <button
                     type="button"
@@ -622,20 +623,21 @@ function AuthModal({
                   <span className="text-[10px] text-muted-foreground font-normal">(6 أحرف على الأقل)</span>
                 </Label>
                 <div className="relative">
-                  <Input
-                    type={showRegPassword ? 'text' : 'password'}
-                    placeholder="••••••••"
-                    value={regPassword}
-                    onChange={e => { setRegPassword(e.target.value); setError(null) }}
-                    className="rounded-xl h-11 focus:ring-emerald-300 pl-10"
-                    required
-                    minLength={6}
-                  />
-                  <button
-                    type="button"
-                    onClick={() => setShowRegPassword(!showRegPassword)}
-                    className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
-                  >
+                    <Input
+                      type={showRegPassword ? 'text' : 'password'}
+                      placeholder="••••••••"
+                      value={regPassword}
+                      onChange={e => { setRegPassword(e.target.value); setError(null) }}
+                      className="rounded-xl h-11 focus:ring-emerald-300 pr-4 pl-10 text-right"
+                      required
+                      minLength={6}
+                      dir="rtl"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowRegPassword(!showRegPassword)}
+                      className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
+                    >
                     {showRegPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                   </button>
                 </div>
@@ -855,14 +857,21 @@ function RatingSystem({ currentUser }: { currentUser: CurrentUser | null }) {
 function AutoReplyChat() {
   const [isOpen, setIsOpen] = useState(false)
   const [messages, setMessages] = useState<{ text: string; isBot: boolean }[]>([
-    { text: 'مرحباً بكِ! أنا المساعد الذكي لنظام حصين. كيف يمكنني مساعدتكِ اليوم؟', isBot: true }
+    { text: 'أهلاً بكِ! أنا حصين، مساعدكِ الذكي. كيف أستطيع خدمتكِ اليوم؟', isBot: true }
   ])
   const [inputValue, setInputValue] = useState('')
+  const [isTyping, setIsTyping] = useState(false)
 
   const quickQuestions = [
-    { q: 'كيف أحجز؟', a: 'يمكنكِ الحجز عن طريق التوجه لعلامة التبويب "حجز للوكر"، اختيار القاعة ثم اللوكر المتاح.' },
-    { q: 'الموقع الرسمي', a: 'يمكنكِ زيارة بوابة "قبولي" (https://adm.tvtc.gov.sa) أو الموقع الرسمي (https://tvtc.gov.sa) للوصول لخدمات الكلية.' }
-]
+    { q: 'كيف أحجز؟', a: 'لحجز لوكر، سجلي دخولكِ أولاً ثم اختاري القاعة واللوكر المفضل من الخريطة.' },
+    { q: 'إلغاء الحجز', a: 'يمكنكِ إلغاء الحجز من صفحة "حجوزاتي" بالضغط على أيقونة الإلغاء بجانب الحجز المعني.' },
+    { q: 'نسيت رقم اللوكر', a: 'تفضلِ بزيارة صفحة "حجوزاتي"؛ ستجدين هناك رقم اللوكر والقاعة التي اخترتِها بالتفصيل.' },
+    { q: 'أين موقع الكلية؟', a: 'الكلية التقنية للبنات بالطائف تقع في [حي الرميدة]، ويمكنكِ الوصول إليها بسهولة عبر خرائط جوجل.' },
+    { q: 'هل توجد رسوم؟', a: 'خدمة "حصين" مجانية بالكامل لجميع طالبات الكلية التقنية.' },
+    { q: 'اللوكر تالف', a: 'في حال وجود عطل، يرجى مراجعة مكتب شؤون الطالبات فوراً لإصلاح القفل أو تغيير الحجز.' },
+    { q: 'مدة الحجز', a: 'جميع الحجوزات تنتهي بنهاية اليوم الدراسي (2:30 ظهراً) لضمان إتاحتها في اليوم التالي.' },
+    { q: 'الموقع الرسمي', a: 'يمكنكِ زيارة بوابة "قبولي" (https://adm.tvtc.gov.sa) أو الموقع الرسمي (https://tvtc.gov.sa).' }
+  ]
 
   const handleSend = (text: string) => {
     if (!text.trim()) return
@@ -870,19 +879,32 @@ function AutoReplyChat() {
     setMessages(newMsgs)
     setInputValue('')
 
-    // Simple Auto-Reply logic
+    setIsTyping(true)
+    
+    // Advanced Auto-Reply logic
     setTimeout(() => {
       let reply = 'عذراً، لم أفهم سؤالكِ جيداً. يمكنكِ اختيار أحد الأسئلة الشائعة أو زيارة الموقع الرسمي للمؤسسة.'
       const lowerText = text.toLowerCase()
       
-      if (lowerText.includes('حجز') || lowerText.includes('لوكر')) {
-        reply = 'لحجز لوكر، سجلي دخولكِ أولاً ثم اختاري القاعة واللوكر المفضل من الخريطة.'
-      } else if (lowerText.includes('موقع') || lowerText.includes('مكان')) {
-        reply = 'يمكنكِ زيارة الموقع الرسمي للكلية: https://tvtc.gov.sa أو بوابة القبول "قبولي": https://adm.tvtc.gov.sa'
+      if (lowerText.includes('أهلا') || lowerText.includes('مرحبا') || lowerText.includes('سلام')) {
+        reply = 'أهلاً بكِ! أنا حصين، مساعدكِ الذكي. كيف يمكنني مساعدتكِ اليوم؟'
+      } else if (lowerText.includes('حجز') || lowerText.includes('لوكر')) {
+        reply = 'لحجز لوكر، تأكدي من تسجيل الدخول، ثم اختاري "حجز لوكر" من القائمة الرئيسية، حددي القاعة واختاري مكاناً متاحاً.'
+      } else if (lowerText.includes('إلغاء') || lowerText.includes('كنسل') || lowerText.includes('حذف')) {
+        reply = 'بإمكانكِ إلغاء حجزكِ في أي وقت عبر صفحة "حجوزاتي" بالضغط على زر الإلغاء.'
+      } else if (lowerText.includes('نسيت') || lowerText.includes('رقم') || lowerText.includes('معلومات')) {
+        reply = 'لا تقلقي، رقم اللوكر وتفاصيل القاعة محفوظة دائماً في صفحة "حجوزاتي" الخاصة بكِ.'
+      } else if (lowerText.includes('موقع') || lowerText.includes('مكان') || lowerText.includes('عنوان')) {
+        reply = 'الكلية التقنية للبنات بالطائف توفر خدماتها في مقرها الرسمي بمدينة الطائف (حي الرميدة).'
+      } else if (lowerText.includes('رسوم') || lowerText.includes('فلوس') || lowerText.includes('دفع')) {
+        reply = 'نظام "حصين" هو خدمة مجانية مقدمة من الكلية لتسهيل حياة الطالبات، ولا توجد أي رسوم للحجز.'
+      } else if (lowerText.includes('عطل') || lowerText.includes('تالف') || lowerText.includes('خربان')) {
+        reply = 'في حال وجود مشكلة في القفل، يرجى التوجه لمكتب شؤون الطالبات أو إبلاغ مشرفة الصيانة في المبنى.'
       }
 
       setMessages(prev => [...prev, { text: reply, isBot: true }])
-    }, 1000)
+      setIsTyping(false)
+    }, 1500)
   }
 
   return (
@@ -932,6 +954,21 @@ function AutoReplyChat() {
                   </div>
                 </motion.div>
               ))}
+
+              {isTyping && (
+                <motion.div
+                  initial={{ opacity: 0, x: -10 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  className="flex justify-start"
+                >
+                  <div className="bg-white text-emerald-900 p-3 rounded-2xl rounded-tr-none shadow-sm flex items-center gap-1">
+                    <span className="w-1 h-1 rounded-full bg-emerald-400 animate-bounce" />
+                    <span className="w-1 h-1 rounded-full bg-emerald-400 animate-bounce [animation-delay:0.2s]" />
+                    <span className="w-1 h-1 rounded-full bg-emerald-400 animate-bounce [animation-delay:0.4s]" />
+                  </div>
+                </motion.div>
+              )}
+            </div>
               
               {/* Quick Options */}
               {messages.length < 5 && (
