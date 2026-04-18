@@ -1184,7 +1184,7 @@ export default function SeatBookingApp() {
         <Tabs value={activeTab} onValueChange={handleTabChange} dir="rtl">
           {/* ===== TABS LIST ===== */}
           <TabsList className="flex w-full mb-6 h-auto p-1 glass rounded-2xl shadow-sm gap-1 overflow-x-auto">
-            {TABS.map((tab, idx) => (
+            {TABS.filter(tab => tab.value !== 'dashboard' || currentUser?.role === 'ADMIN').map((tab, idx) => (
               <TabsTrigger
                 key={tab.value}
                 value={tab.value}
@@ -1380,13 +1380,15 @@ function HomePage({
               <CalendarDays className="h-4 w-4 ml-2" />
               عرض الحجوزات
             </Button>
-            <Button
-              onClick={() => onTabChange('dashboard')}
-              className="bg-emerald-50/20 hover:bg-white/90 text-white hover:text-emerald-700 border border-white/30 rounded-xl px-5 backdrop-blur-sm transition-all duration-300 font-medium"
-            >
-              <LayoutDashboard className="h-4 w-4 ml-2" />
-              لوحة التحكم
-            </Button>
+            {currentUser?.role === 'ADMIN' && (
+              <Button
+                onClick={() => onTabChange('dashboard')}
+                className="bg-emerald-50/20 hover:bg-white/90 text-white hover:text-emerald-700 border border-white/30 rounded-xl px-5 backdrop-blur-sm transition-all duration-300 font-medium"
+              >
+                <LayoutDashboard className="h-4 w-4 ml-2" />
+                لوحة التحكم
+              </Button>
+            )}
           </div>
         </div>
       </motion.div>
@@ -1533,82 +1535,84 @@ function HomePage({
         </motion.div>
       </div>
 
-      {/* ===== LATEST BOOKINGS (as cards) ===== */}
-      <motion.div
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: 0.5 }}
-      >
-        <Card className="glass-card border-0 rounded-2xl overflow-hidden">
-          <CardHeader className="pb-3">
-            <div className="flex items-center justify-between">
-              <div>
-                <CardTitle className="text-base flex items-center gap-2 font-bold">
-                  <div className="p-1.5 rounded-lg bg-amber-100">
-                    <Clock className="h-4 w-4 text-amber-600" />
-                  </div>
-                  أحدث الحجوزات
-                </CardTitle>
-                <CardDescription className="mt-1">آخر الحجوزات المسجلة في النظام</CardDescription>
-              </div>
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => onTabChange('my-bookings')}
-                className="text-emerald-600 border-emerald-200 hover:bg-emerald-50 rounded-xl text-xs"
-              >
-                عرض الكل
-                <ChevronLeft className="h-3 w-3 mr-1" />
-              </Button>
-            </div>
-          </CardHeader>
-          <CardContent>
-            {stats.latestBookings.length > 0 ? (
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-                {stats.latestBookings.map((booking) => (
-                  <div
-                    key={booking.id}
-                    className={`booking-card status-${booking.status.toLowerCase()} glass-card rounded-xl p-4 pr-6`}
-                  >
-                    <div className="flex items-start justify-between mb-3">
-                      <div className="flex items-center gap-2">
-                        <div className="w-8 h-8 rounded-full bg-emerald-100 flex items-center justify-center">
-                          <UserCheck className="h-4 w-4 text-emerald-600" />
-                        </div>
-                        <div>
-                          <p className="text-sm font-semibold">{booking.user.name}</p>
-                          {booking.user.studentId && (
-                            <p className="text-[10px] text-muted-foreground">#{booking.user.studentId}</p>
-                          )}
-                        </div>
-                      </div>
-                      <StatusBadge status={booking.status} />
+      {/* ===== LATEST BOOKINGS (as cards) - ADMIN ONLY ===== */}
+      {currentUser?.role === 'ADMIN' && (
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.5 }}
+        >
+          <Card className="glass-card border-0 rounded-2xl overflow-hidden">
+            <CardHeader className="pb-3">
+              <div className="flex items-center justify-between">
+                <div>
+                  <CardTitle className="text-base flex items-center gap-2 font-bold">
+                    <div className="p-1.5 rounded-lg bg-amber-100">
+                      <Clock className="h-4 w-4 text-amber-600" />
                     </div>
-                    <div className="space-y-1.5">
-                      <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                        <Building2 className="h-3 w-3" />
-                        <span>{booking.seat.room.name}</span>
-                        <span className="opacity-40">|</span>
-                        <Armchair className="h-3 w-3" />
-                        <span>لوكر {booking.seat.seatNumber}</span>
+                    أحدث الحجوزات
+                  </CardTitle>
+                  <CardDescription className="mt-1">آخر الحجوزات المسجلة في النظام</CardDescription>
+                </div>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => onTabChange('dashboard')}
+                  className="text-emerald-600 border-emerald-200 hover:bg-emerald-50 rounded-xl text-xs"
+                >
+                  لوحة التحكم
+                  <ChevronLeft className="h-3 w-3 mr-1" />
+                </Button>
+              </div>
+            </CardHeader>
+            <CardContent>
+              {stats.latestBookings.length > 0 ? (
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+                  {stats.latestBookings.map((booking) => (
+                    <div
+                      key={booking.id}
+                      className={`booking-card status-${booking.status.toLowerCase()} glass-card rounded-xl p-4 pr-6`}
+                    >
+                      <div className="flex items-start justify-between mb-3">
+                        <div className="flex items-center gap-2">
+                          <div className="w-8 h-8 rounded-full bg-emerald-100 flex items-center justify-center">
+                            <UserCheck className="h-4 w-4 text-emerald-600" />
+                          </div>
+                          <div>
+                            <p className="text-sm font-semibold">{booking.user.name}</p>
+                            {booking.user.studentId && (
+                              <p className="text-[10px] text-muted-foreground">#{booking.user.studentId}</p>
+                            )}
+                          </div>
+                        </div>
+                        <StatusBadge status={booking.status} />
                       </div>
-                      <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                        <CalendarDays className="h-3 w-3" />
-                        <span>{booking.date}</span>
-                        <span className="opacity-40">|</span>
-                        <Clock className="h-3 w-3" />
-                        <span>{booking.timeSlot}</span>
+                      <div className="space-y-1.5">
+                        <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                          <Building2 className="h-3 w-3" />
+                          <span>{booking.seat.room.name}</span>
+                          <span className="opacity-40">|</span>
+                          <Armchair className="h-3 w-3" />
+                          <span>لوكر {booking.seat.seatNumber}</span>
+                        </div>
+                        <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                          <CalendarDays className="h-3 w-3" />
+                          <span>{booking.date}</span>
+                          <span className="opacity-40">|</span>
+                          <Clock className="h-3 w-3" />
+                          <span>{booking.timeSlot}</span>
+                        </div>
                       </div>
                     </div>
-                  </div>
-                ))}
-              </div>
-            ) : (
-              <EmptyState icon={CalendarDays} message="لا توجد حجوزات بعد" />
-            )}
-          </CardContent>
-        </Card>
-      </motion.div>
+                  ))}
+                </div>
+              ) : (
+                <EmptyState icon={CalendarDays} message="لا توجد حجوزات بعد" />
+              )}
+            </CardContent>
+          </Card>
+        </motion.div>
+      )}
 
       {/* ===== NEW SECTIONS ===== */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 pb-12">
