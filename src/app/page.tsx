@@ -862,7 +862,7 @@ function AutoReplyChat() {
   const quickQuestions = [
     { q: 'كيف أحجز؟', a: 'يمكنكِ الحجز عن طريق التوجه لعلامة التبويب "حجز للوكر"، اختيار القاعة ثم اللوكر المتاح.' },
     { q: 'أين موقع الكلية؟', a: 'الكلية التقنية للبنات بالطائف تقع في [حي الرميدة، الطائف]، ويمكنكِ الوصول إليها بسهولة عبر خرائط جوجل.' },
-    { q: 'الموقع الرسمي', a: 'يمكنكِ زيارة الموقع الرسمي للمؤسسة العامة للتدريب التقني والمهني للوصول لخدمات الكلية: https://www.tvtc.gov.sa' }
+    { q: 'الموقع الرسمي', a: 'يمكنكِ زيارة بوابة "قبولي" (https://adm.tvtc.gov.sa) أو الموقع الرسمي (https://tvtc.gov.sa) للوصول لخدمات الكلية.' }
   ]
 
   const handleSend = (text: string) => {
@@ -879,7 +879,7 @@ function AutoReplyChat() {
       if (lowerText.includes('حجز') || lowerText.includes('لوكر')) {
         reply = 'لحجز لوكر، سجلي دخولكِ أولاً ثم اختاري القاعة واللوكر المفضل من الخريطة.'
       } else if (lowerText.includes('تواصل') || lowerText.includes('تويتر') || lowerText.includes('موقع')) {
-        reply = 'يمكنكِ زيارة الموقع الرسمي للكلية (المؤسسة العامة للتدريب التقني): https://www.tvtc.gov.sa أو التواصل عبر تويتر: @GTC_Taif'
+        reply = 'يمكنكِ زيارة الموقع الرسمي للكلية: https://tvtc.gov.sa أو بوابة القبول "قبولي": https://adm.tvtc.gov.sa'
       } else if (lowerText.includes('مكان')) {
         reply = 'الكلية التقنية للبنات بالطائف توفر خدماتها في مقرها الرسمي بمدينة الطائف (حي الرميدة).'
       }
@@ -1205,7 +1205,7 @@ export default function SeatBookingApp() {
               <Separator orientation="vertical" className="h-4" />
               <div className="flex items-center gap-3">
                 <a 
-                  href="https://www.tvtc.gov.sa" 
+                  href="https://tvtc.gov.sa" 
                   target="_blank" 
                   rel="noreferrer"
                   className="flex items-center gap-1 hover:text-emerald-600 transition-colors"
@@ -1216,13 +1216,14 @@ export default function SeatBookingApp() {
                 </a>
                 <Separator orientation="vertical" className="h-3" />
                 <a 
-                  href="https://twitter.com/GTC_Taif" 
+                  href="https://adm.tvtc.gov.sa" 
                   target="_blank" 
                   rel="noreferrer"
-                  className="flex items-center gap-1 hover:text-emerald-600 transition-colors text-muted-foreground/60"
-                  title="تويتر الكلية"
+                  className="flex items-center gap-1 hover:text-emerald-600 transition-colors text-xs font-medium"
+                  title="بوابة قبولي"
                 >
-                  <Twitter className="h-3.5 w-3.5" />
+                  <UserPlus className="h-3.5 w-3.5" />
+                  <span className="hidden sm:inline">بوابة قبولي</span>
                 </a>
               </div>
             </div>
