@@ -691,6 +691,7 @@ function AuthModal({
           )}
         </motion.div>
       </DialogContent>
+    </Dialog>
   )
 }
 
